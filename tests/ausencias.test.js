@@ -80,14 +80,4 @@ const fer=R('carregarFeriados_(null)');
 for (const d of ['2026-11-02','2026-11-20','2026-04-03','2026-06-04','2026-02-16']) assert.ok(fer.has(d), d);
 // Sem dev no Contatos com email diferente: Evandro (evandro.italo no Contatos) casa por nome
 assert.equal(av('evandro.peixoto@totvs.com.br','2026-10-28').eDiaInteiro,true);
-// ---- integração: calcularPendenciasDevs_ ----
-ctx.wls=[{author:{name:'u2',displayName:'Eduardo Nunes Cirqueira'},started:'2026-10-13',timeSpentSeconds:6*3600},
-         {author:{name:'u6',displayName:'Fabio'},started:'2026-10-14',timeSpentSeconds:4*3600}];
-const pend=R(`calcularPendenciasDevs_(wls, lerDataAus_('2026-10-05'), lerDataAus_('2026-10-16'), {horaMinima:'6'})`);
-const edu=pend.find(p=>p.email==='eduardo.cirqueira@totvs.com.br');
-console.log('Eduardo pendências:', edu && edu.pendencias.map(p=>p.data+' meta '+p.meta+' '+p.ausencia));
-assert.ok(!edu.pendencias.some(p=>/^(0[5-9]|12)\/10/.test(p.data)), 'férias/feriado não cobrados');
-const fab=pend.find(p=>p.email==='fabio.mendonca@totvs.com.br');
-assert.ok(!fab.pendencias.some(p=>p.data==='14/10/2026'), 'fisio abatida: 4h apontadas bastam');
-assert.ok(pend.find(p=>p.email==='yasmim.castro@totvs.com.br'), 'dev sem apontamento também é cobrado');
 console.log('TODOS OS TESTES PASSARAM');

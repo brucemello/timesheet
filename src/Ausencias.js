@@ -36,9 +36,11 @@ function carregarAusencias_(ss, devs) {
   const avisos = [];
   const lista = (devs || []).filter(d => d && d.email);
   const apelidos = lerApelidosDePara_(ss);
+  let urls = { urlFerias: URL_PLANILHA_FERIAS, urlAgenda: URL_PLANILHA_AGENDA_AUSENCIAS };
+  try { urls = obterConfiguracoesAtuais(); } catch (e) { /* usa os padrões */ }
 
   let planilhaFerias = null;
-  try { planilhaFerias = SpreadsheetApp.openByUrl(URL_PLANILHA_FERIAS); }
+  try { planilhaFerias = abrirPlanilhaRef_(urls.urlFerias); }
   catch (e) { avisos.push('Planilha de férias inacessível: ' + e.message); }
 
   let contatos = {};
@@ -71,7 +73,7 @@ function carregarAusencias_(ss, devs) {
 
   // 2. Agendamento de Ausências (espelho da agenda do time)
   try {
-    const planilhaAgenda = SpreadsheetApp.openByUrl(URL_PLANILHA_AGENDA_AUSENCIAS);
+    const planilhaAgenda = abrirPlanilhaRef_(urls.urlAgenda);
     const aba = planilhaAgenda.getSheetByName('Página1') || planilhaAgenda.getSheets()[0];
     if (aba && aba.getLastRow() > 1) {
       coletar(interpretarAgendamento_(aba.getRange(2, 1, aba.getLastRow() - 1, 7).getDisplayValues(), matcher));
@@ -83,7 +85,7 @@ function carregarAusencias_(ss, devs) {
   // 3. Aba local "Ausencias"
   const abaLocal = ss.getSheetByName('Ausencias');
   if (abaLocal && abaLocal.getLastRow() > 1) {
-    coletar(interpretarAusenciasLocais_(abaLocal.getRange(2, 1, abaLocal.getLastRow() - 1, 4).getDisplayValues(), matcher));
+    coletar(interpretarAusenciasLocais_(abaLocal.getRange(2, 1, abaLocal.getLastRow() - 1, 5).getDisplayValues(), matcher));
   }
 
   const nv = Object.keys(naoVinculados).sort();
@@ -197,7 +199,7 @@ function interpretarAgendamento_(linhas, matcher) {
   return out;
 }
 
-/** Aba local "Ausencias": Identificador (nome/e-mail) | Início | Fim | Horas (opcional: parcial por dia) */
+/** Aba local "Ausencias": Identificador (nome/e-mail) | Início | Fim | Horas (opcional: parcial por dia) | Motivo */
 function interpretarAusenciasLocais_(linhas, matcher) {
   const out = { registros: [], naoVinculados: [] };
   linhas.forEach(r => {
@@ -210,8 +212,8 @@ function interpretarAusenciasLocais_(linhas, matcher) {
     const email = matcher(ident, ident, isoAus_(ini));
     if (!email) { out.naoVinculados.push(ident); return; }
     out.registros.push({
-      email: email, inicio: isoAus_(ini), fim: isoAus_(fim), tipo: 'Ausência', horas: parcial ? horasNum : null,
-      origem: AUS_ORIGEM_MANUAL, titulo: 'Ausência registrada localmente',
+      email: email, inicio: isoAus_(ini), fim: isoAus_(fim), tipo: inferirTipoAusencia_(r[4] || ''), horas: parcial ? horasNum : null,
+      origem: AUS_ORIGEM_MANUAL, titulo: String(r[4] || '').trim() || 'Ausência registrada localmente',
       horarioTexto: parcial ? horasNum + 'h' : 'Dia Inteiro'
     });
   });
@@ -415,6 +417,12 @@ function carregarFeriados_(ss) {
     });
   }
   return feriados;
+}
+
+/** Aceita URL ou ID da planilha. */
+function abrirPlanilhaRef_(ref) {
+  ref = String(ref || '').trim();
+  return /^https?:/i.test(ref) ? SpreadsheetApp.openByUrl(ref) : SpreadsheetApp.openById(ref);
 }
 
 /* =============================================================================

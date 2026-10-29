@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <title>Timesheet · Painel de Controle</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f3f6fb; --card: #ffffff; --ink: #0b1b33; --ink-2: #44546f; --ink-3: #8a97ad; --line: #e6ebf3;
+      --navy: #0b1f3a; --teal: #0f5b78; --cyan: #06b6d4; --blue: #3b82f6; --violet: #8b5cf6; --green: #10b981;
+      --amber: #f59e0b; --orange: #f97316; --red: #ef4444; --pink: #ec4899;
+      --radius: 16px; --shadow: 0 1px 2px rgba(11,27,51,.04), 0 8px 24px rgba(11,27,51,.06);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: 'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif; font-size: 14px; }
+    body { min-height: 100vh; }
+    button { font-family: inherit; }
+
+    /* ---------- Header ---------- */
+    .hero { position: relative; overflow: hidden; color: #fff; padding: 22px 28px 74px;
+      background: radial-gradient(1200px 400px at 85% -50%, rgba(16,185,129,.45), transparent 60%),
+                  radial-gradient(800px 300px at 10% 120%, rgba(59,130,246,.45), transparent 60%),
+                  linear-gradient(120deg, #0b1f3a 0%, #0f3b5f 55%, #0f5b78 100%); }
+    .hero-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+    .brand { display: flex; gap: 14px; align-items: center; }
+    .brand-logo { width: 46px; height: 46px; border-radius: 12px; background: rgba(255,255,255,.12); display: grid; place-items: center; border: 1px solid rgba(255,255,255,.2); font-size: 22px; }
+    .eyebrow { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; opacity: .7; font-weight: 600; }
+    h1 { margin: 2px 0 0; font-size: 24px; font-weight: 800; letter-spacing: -.01em; }
+    .sub { margin-top: 4px; font-size: 12.5px; opacity: .8; }
+    .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .1em; opacity: .75; font-weight: 600; }
+    .field input { padding: 9px 10px; border-radius: 10px; font: inherit; font-weight: 600; font-size: 13px; background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.25); color-scheme: dark; }
+    .btn { border: 0; border-radius: 10px; padding: 10px 14px; font: inherit; font-weight: 700; font-size: 13px; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; justify-content: center; transition: transform .15s, background .2s, filter .2s; white-space: nowrap; }
+    .btn:active { transform: scale(.97); }
+    .btn-light { background: #fff; color: var(--navy); } .btn-light:hover { background: #e8f6fb; }
+    .btn-ghost { background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.25); } .btn-ghost:hover { background: rgba(255,255,255,.2); }
+    .btn-primary { background: linear-gradient(120deg, #0f5b78, #0b1f3a); color: #fff; } .btn-primary:hover { filter: brightness(1.15); }
+    .btn-send { background: linear-gradient(120deg, #ef4444, #f97316); color: #fff; } .btn-send:hover { filter: brightness(1.08); }
+    .btn-line { background: #fff; color: var(--ink-2); border: 1px solid #d6deea; } .btn-line:hover { background: #f5f8fc; }
+    .btn-soft { background: #eef4ff; color: var(--blue); } .btn-soft:hover { background: #e0eaff; }
+    .btn-danger { background: #fee2e2; color: #b91c1c; }
+    .btn-sm { padding: 6px 10px; font-size: 12px; border-radius: 8px; }
+    .btn[disabled] { opacity: .55; cursor: not-allowed; }
+
+    .tabs { display: flex; gap: 6px; margin-top: 18px; flex-wrap: wrap; }
+    .tab { background: transparent; color: rgba(255,255,255,.75); border: 1px solid transparent; padding: 9px 16px; border-radius: 999px; font: inherit; font-weight: 700; font-size: 13px; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; transition: background .2s, color .2s; }
+    .tab:hover { background: rgba(255,255,255,.1); color: #fff; }
+    .tab.active { background: #fff; color: var(--navy); box-shadow: 0 4px 14px rgba(0,0,0,.18); }
+    .tab .badge { background: var(--red); color: #fff; border-radius: 999px; font-size: 10.5px; padding: 1px 7px; }
+    .view[hidden] { display: none !important; }
+
+    /* ---------- Layout ---------- */
+    main { padding: 0 28px 32px; margin-top: -54px; position: relative; }
+    .grid { display: grid; gap: 16px; }
+    .kpis { grid-template-columns: 1.4fr repeat(6, 1fr); }
+    .row-2 { grid-template-columns: 1.15fr 1fr; margin-top: 16px; }
+    .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--line); padding: 18px 20px; min-width: 0; }
+    .card h2 { font-size: 15px; margin: 0; font-weight: 700; }
+    .card-sub { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+    .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+    .chart-box { position: relative; height: 300px; }
+    .mt { margin-top: 16px; }
+
+    /* ---------- KPI ---------- */
+    .kpi { position: relative; overflow: hidden; padding: 16px 18px; display: flex; flex-direction: column; justify-content: space-between; min-height: 128px; }
+    .kpi::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--accent, var(--blue)); }
+    .kpi-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+    .kpi-label { font-size: 11px; font-weight: 700; color: var(--ink-2); text-transform: uppercase; letter-spacing: .06em; }
+    .kpi-icon { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; font-size: 15px; background: color-mix(in srgb, var(--accent) 14%, white); flex: none; }
+    .kpi-value { font-size: 26px; font-weight: 800; letter-spacing: -.02em; margin-top: 10px; font-variant-numeric: tabular-nums; }
+    .kpi-value small { font-size: 13px; font-weight: 700; color: var(--ink-3); margin-left: 2px; }
+    .kpi-foot { font-size: 11.5px; font-weight: 600; color: var(--ink-3); margin-top: 4px; }
+    .kpi-hero { background: linear-gradient(135deg, #ffffff 0%, #f5f9ff 100%); flex-direction: row; align-items: center; gap: 16px; }
+    .kpi-hero::before { width: 0; }
+    .ring { position: relative; width: 104px; height: 104px; flex: none; }
+    .ring svg { transform: rotate(-90deg); }
+    .ring-val { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 800; font-size: 22px; }
+    .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 999px; margin-top: 8px; }
+    .pill-ok { background: #dcfce7; color: #047857; } .pill-warn { background: #fef3c7; color: #b45309; } .pill-bad { background: #fee2e2; color: #b91c1c; }
+
+    /* ---------- Atenção ---------- */
+    .rank { display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto; padding-right: 4px; }
+    .rank-item { display: grid; grid-template-columns: 30px 1fr auto; gap: 10px; align-items: center; }
+    .avatar { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 800; color: #fff; flex: none; }
+    .rank-name { font-size: 12.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rank-meta { font-size: 11px; color: var(--ink-3); font-weight: 600; }
+    .bar { height: 7px; border-radius: 99px; background: #eef2f8; margin-top: 4px; overflow: hidden; }
+    .bar > span { display: block; height: 100%; border-radius: 99px; transition: width .6s cubic-bezier(.2,.8,.2,1); }
+    .ok-box { text-align: center; padding: 50px 10px; color: var(--ink-3); font-weight: 600; }
+    .ok-box b { display: block; font-size: 34px; margin-bottom: 6px; }
+
+    /* ---------- Heatmap ---------- */
+    .heat-wrap { overflow-x: auto; }
+    table.heat { border-collapse: separate; border-spacing: 3px; font-size: 11px; }
+    table.heat th { font-weight: 600; color: var(--ink-3); padding: 2px; text-align: center; min-width: 30px; line-height: 1.15; }
+    table.heat th.fer { color: #94a3b8; }
+    table.heat th.hoje { color: var(--teal); }
+    table.heat td.name { white-space: nowrap; padding-right: 10px; font-weight: 700; color: var(--ink-2); max-width: 200px; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+    table.heat td.name:hover { color: var(--teal); text-decoration: underline; }
+    table.heat td.cell { width: 30px; height: 26px; border-radius: 6px; text-align: center; font-weight: 700; font-size: 10px; cursor: default; }
+    .legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: var(--ink-2); }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .legend i { width: 12px; height: 12px; border-radius: 4px; display: inline-block; }
+
+    /* ---------- Tabelas ---------- */
+    .tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .search { padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); font: inherit; font-size: 12.5px; width: 210px; background: #f8fafc; }
+    .sel { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); font: inherit; font-size: 12.5px; background: #f8fafc; }
+    .tbl-wrap { overflow-x: auto; }
+    table.data { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    table.data th { text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); font-weight: 700; padding: 10px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; user-select: none; }
+    table.data th.sort { cursor: pointer; } table.data th.sort:hover { color: var(--ink); }
+    table.data th.num, table.data td.num { text-align: right; }
+    table.data td { padding: 9px 8px; border-bottom: 1px solid #f1f4f9; font-variant-numeric: tabular-nums; vertical-align: middle; }
+    table.data tr:hover td { background: #fafcff; }
+    .who { display: flex; gap: 10px; align-items: center; min-width: 210px; }
+    .who b { display: block; font-size: 12.5px; }
+    .who small { color: var(--ink-3); font-size: 11px; }
+    .chip { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .c-ok { background: #dcfce7; color: #047857; } .c-bad { background: #fee2e2; color: #b91c1c; } .c-warn { background: #fef3c7; color: #b45309; }
+    .c-info { background: #e0f2fe; color: #0369a1; } .c-vio { background: #ede9fe; color: #6d28d9; } .c-gray { background: #eef2f8; color: #64748b; }
+    .acoes { display: flex; gap: 4px; justify-content: flex-end; }
+    .icon-btn { border: 0; background: transparent; cursor: pointer; font-size: 15px; padding: 6px 8px; border-radius: 8px; color: var(--ink-2); }
+    .icon-btn:hover { background: #eef4ff; }
+    .icon-btn.del:hover { background: #fee2e2; color: #b91c1c; }
+    input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--teal); cursor: pointer; }
+    .bulkbar { display: none; align-items: center; gap: 10px; padding: 10px 14px; background: #0b1f3a; color: #fff; border-radius: 12px; margin-bottom: 12px; font-weight: 600; font-size: 13px; flex-wrap: wrap; }
+    .bulkbar.show { display: flex; }
+    .bulkbar .spacer { flex: 1; }
+
+    /* ---------- Cobranças ---------- */
+    .cob-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; }
+    .cob { border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: #fff; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--shadow); position: relative; }
+    .cob.sel { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(15,91,120,.15); }
+    .cob-head { display: flex; gap: 10px; align-items: center; }
+    .cob-head .who { min-width: 0; flex: 1; }
+    .cob-stats { display: flex; gap: 8px; flex-wrap: wrap; }
+    .days { display: flex; flex-wrap: wrap; gap: 5px; max-height: 92px; overflow-y: auto; }
+    .day { font-size: 11px; font-weight: 700; padding: 3px 7px; border-radius: 7px; background: #fff1f2; color: #be123c; border: 1px solid #ffe4e6; }
+    .day.zero { background: #fee2e2; color: #b91c1c; }
+    .day.aus { background: #f5f3ff; color: #6d28d9; border-color: #ede9fe; }
+    .cob-foot { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; }
+    .cob-last { font-size: 11px; color: var(--ink-3); font-weight: 600; }
+    .em-dia { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* ---------- Formulários ---------- */
+    .gen-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; }
+    .gen-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .fld { display: flex; flex-direction: column; gap: 5px; }
+    .fld label { font-size: 11px; font-weight: 700; color: var(--ink-2); text-transform: uppercase; letter-spacing: .06em; }
+    .inp { padding: 10px 12px; border-radius: 10px; border: 1px solid #d6deea; font: inherit; font-size: 13px; background: #fff; color: var(--ink); width: 100%; }
+    .inp:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(15,91,120,.12); }
+    .inp[disabled] { background: #f3f6fb; color: var(--ink-3); }
+    .hint { font-size: 12px; color: var(--ink-3); line-height: 1.5; margin: 0 0 12px; }
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .switch { display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; font-size: 13px; margin-bottom: 12px; }
+    .switch input { display: none; }
+    .switch .track { width: 40px; height: 22px; border-radius: 99px; background: #cbd5e1; position: relative; transition: background .2s; flex: none; }
+    .switch .track::after { content: ''; position: absolute; width: 18px; height: 18px; top: 2px; left: 2px; border-radius: 50%; background: #fff; transition: left .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+    .switch input:checked + .track { background: var(--green); }
+    .switch input:checked + .track::after { left: 20px; }
+    .list { display: flex; flex-direction: column; gap: 8px; }
+    .list-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; font-size: 13px; font-weight: 600; }
+    .list-item small { display: block; color: var(--ink-3); font-weight: 500; font-size: 11.5px; }
+    .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .action { text-align: left; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: #fff; cursor: pointer; font: inherit; display: flex; gap: 10px; align-items: flex-start; transition: background .15s, border-color .15s; }
+    .action:hover { background: #f7fafd; border-color: #cfdbea; }
+    .action .ic { font-size: 18px; }
+    .action b { display: block; font-size: 13px; color: var(--ink); }
+    .action small { color: var(--ink-3); font-size: 11.5px; line-height: 1.35; }
+    .banner { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; background: #eef6ff; border: 1px solid #d5e6ff; color: #1e3a8a; font-size: 12.5px; margin-bottom: 14px; line-height: 1.5; }
+    .banner.warn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+    .banner.bad { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+
+    /* ---------- Cadastros ---------- */
+    .subtabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .subtab { background: #fff; border: 1px solid var(--line); padding: 10px 16px; border-radius: 12px; font: inherit; font-weight: 700; font-size: 13px; color: var(--ink-2); cursor: pointer; display: inline-flex; gap: 8px; align-items: center; box-shadow: var(--shadow); }
+    .subtab .count { background: #eef2f8; color: var(--ink-2); border-radius: 999px; padding: 1px 8px; font-size: 11px; }
+    .subtab.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+    .subtab.active .count { background: rgba(255,255,255,.18); color: #fff; }
+    table.edit { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    table.edit th { text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); font-weight: 700; padding: 8px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    table.edit td { padding: 4px; border-bottom: 1px solid #f3f5fa; vertical-align: middle; }
+    table.edit tr.changed td { background: #fffbeb; }
+    table.edit tr.novo td { background: #f0fdf4; }
+    .cell-inp { width: 100%; padding: 7px 8px; border: 1px solid transparent; border-radius: 8px; font: inherit; font-size: 12.5px; background: transparent; color: var(--ink); min-width: 80px; }
+    .cell-inp:hover { border-color: #e2e8f0; background: #fff; }
+    .cell-inp:focus { outline: none; border-color: var(--teal); background: #fff; box-shadow: 0 0 0 3px rgba(15,91,120,.1); }
+    .sel-sim { color: #047857 !important; font-weight: 700; } .sel-nao { color: #b91c1c !important; font-weight: 700; }
+    .ctl-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+    .ctl-status { font-size: 12px; color: var(--ink-3); font-weight: 600; }
+    .ctl-status.dirty { color: #b45309; }
+
+    /* ---------- Modal / loader / toast ---------- */
+    .loader { position: fixed; inset: 0; background: rgba(243,246,251,.85); display: grid; place-items: center; z-index: 80; backdrop-filter: blur(2px); }
+    .loader[hidden] { display: none; }
+    .spinner { width: 44px; height: 44px; border-radius: 50%; border: 4px solid #dbe5f3; border-top-color: var(--teal); animation: spin .8s linear infinite; margin: 0 auto 12px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader p { color: var(--ink-2); font-weight: 600; text-align: center; margin: 0; }
+    .toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(140px); background: var(--navy); color: #fff; padding: 12px 18px; border-radius: 12px; font-weight: 600; font-size: 13px; box-shadow: var(--shadow); transition: transform .3s; max-width: 86vw; z-index: 90; line-height: 1.45; }
+    .toast:not(.show) { visibility: hidden; }
+    .toast.show { transform: translateX(-50%) translateY(0); visibility: visible; }
+    .toast.err { background: #b91c1c; }
+    .modal-bg { position: fixed; inset: 0; background: rgba(11,27,51,.45); display: grid; place-items: center; z-index: 70; padding: 20px; backdrop-filter: blur(2px); }
+    .modal-bg[hidden] { display: none; }
+    .modal { background: #fff; border-radius: 18px; width: min(860px, 100%); max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+    .modal.sm { width: min(480px, 100%); }
+    .modal-head { padding: 16px 20px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .modal-head h3 { margin: 0; font-size: 16px; }
+    .modal-body { padding: 16px 20px; overflow-y: auto; }
+    .modal-foot { padding: 12px 20px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+    .mail-meta { font-size: 12.5px; color: var(--ink-2); margin-bottom: 10px; line-height: 1.6; }
+    iframe.mail { width: 100%; height: 420px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+    .det-days { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+    .det-day { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 12px; }
+    .det-day b { display: block; font-size: 12.5px; }
+    .det-day small { color: var(--ink-3); display: block; margin-top: 2px; line-height: 1.35; }
+
+    footer { text-align: center; font-size: 11.5px; color: var(--ink-3); padding: 6px 0 22px; }
+    footer a { color: var(--teal); font-weight: 700; text-decoration: none; }
+    .empty { text-align: center; padding: 50px 20px; color: var(--ink-3); }
+    .empty b { display: block; color: var(--ink); font-size: 16px; margin-bottom: 6px; }
+
+    @media (max-width: 1250px) { .kpis { grid-template-columns: repeat(4, 1fr); } .kpi-hero { grid-column: span 2; } }
+    @media (max-width: 900px) { .row-2, .gen-grid, .form-row, .action-grid { grid-template-columns: 1fr; } .kpis { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px) { .hero, main { padding-left: 16px; padding-right: 16px; } .search { width: 100%; } .cob-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="loader" id="loader"><div><div class="spinner"></div><p id="loaderMsg">Buscando apontamentos no Tempo…</p></div></div>
+  <div class="toast" id="toast"></div>
+  <div class="modal-bg" id="modalBg" hidden>
+    <div class="modal" id="modal">
+      <div class="modal-head"><h3 id="modalTitulo">—</h3><button class="icon-btn" id="modalFechar" title="Fechar">✕</button></div>
+      <div class="modal-body" id="modalCorpo"></div>
+      <div class="modal-foot" id="modalRodape"></div>
+    </div>
+  </div>
+
+  <header class="hero">
+    <div class="hero-top">
+      <div class="brand">
+        <div class="brand-logo">⏱️</div>
+        <div>
+          <div class="eyebrow">Timesheet · Tempo API</div>
+          <h1>Controle de Apontamento de Horas</h1>
+          <div class="sub" id="subtitulo">—</div>
+        </div>
+      </div>
+      <div class="filters">
+        <div class="field"><label for="fDe">Mês de</label><input type="month" id="fDe"></div>
+        <div class="field"><label for="fAte">Até</label><input type="month" id="fAte"></div>
+        <button class="btn btn-ghost" id="btnPeriodo" title="Aplica o período escolhido">Aplicar</button>
+        <button class="btn btn-light" id="btnAtualizar" title="Busca tudo de novo no Tempo, agenda e férias">↻ Atualizar</button>
+      </div>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-view="dash">📈 Dashboard</button>
+      <button class="tab" data-view="cobrancas">📧 Cobranças <span class="badge" id="badgeCob" hidden>0</span></button>
+      <button class="tab" data-view="ausencias">🌴 Ausências</button>
+      <button class="tab" data-view="cadastros">🗂️ Cadastros</button>
+      <button class="tab" data-view="config">⚙️ Configurações</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ===================== DASHBOARD ===================== -->
+    <div class="view" id="view-dash">
+      <div id="dashErro"></div>
+      <section class="grid kpis" id="kpis"></section>
+
+      <section class="grid row-2">
+        <div class="card">
+          <div class="card-head"><div><h2>Meta × apontado por colaborador</h2><div class="card-sub">Dias úteis encerrados, já descontando férias, folgas, ausências e feriados</div></div></div>
+          <div class="chart-box" id="boxColab"><canvas id="chColab"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div><h2>Quem precisa de atenção</h2><div class="card-sub">Horas que faltam para bater a meta do período</div></div></div>
+          <div class="rank" id="atencao"></div>
+        </div>
+      </section>
+
+      <section class="card mt">
+        <div class="card-head"><div><h2>Evolução diária do time</h2><div class="card-sub">Horas apontadas por dia × meta do dia (soma do time)</div></div></div>
+        <div class="chart-box" style="height:260px"><canvas id="chDia"></canvas></div>
+      </section>
+
+      <section class="card mt">
+        <div class="card-head">
+          <div><h2>Mapa diário de apontamentos</h2><div class="card-sub">Passe o mouse para ver horas, meta e ausência · clique no nome para o detalhe</div></div>
+          <div class="legend">
+            <span><i style="background:#ef4444"></i>0h</span>
+            <span><i style="background:#fb923c"></i>&lt; 50%</span>
+            <span><i style="background:#fcd34d"></i>&lt; meta</span>
+            <span><i style="background:#34d399"></i>meta</span>
+            <span><i style="background:#a78bfa"></i>férias/ausência</span>
+            <span><i style="background:#34d399;box-shadow:inset 0 -3px 0 #7c3aed"></i>ausência parcial</span>
+            <span><i style="background:#e2e8f0"></i>feriado</span>
+            <span><i style="background:#fff;border:1.5px dashed #0f5b78"></i>hoje</span>
+          </div>
+        </div>
+        <div class="heat-wrap" id="heatmap"></div>
+      </section>
+
+      <section class="card mt">
+        <div class="card-head">
+          <div><h2>Colaboradores</h2><div class="card-sub" id="tblSub">—</div></div>
+          <div class="tools">
+            <select class="sel" id="fStatus"><option value="">Todos</option><option value="PENDENTE">Com pendência</option><option value="OK">Em dia</option></select>
+            <input class="search" id="busca" placeholder="Buscar colaborador…">
+            <button class="btn btn-soft btn-sm" id="btnCsv">⬇ CSV</button>
+          </div>
+        </div>
+        <div class="bulkbar" id="bulkDash"><span id="bulkDashTxt">0 selecionados</span><span class="spacer"></span>
+          <button class="btn btn-ghost btn-sm" data-bulk="teste">🧪 Enviar teste para mim</button>
+          <button class="btn btn-send btn-sm" data-bulk="enviar">📧 Cobrar selecionados</button>
+          <button class="btn btn-ghost btn-sm" data-bulk="limpar">✕</button></div>
+        <div class="tbl-wrap"><table class="data" id="tabela"></table></div>
+      </section>
+    </div>
+
+    <!-- ===================== COBRANÇAS ===================== -->
+    <div class="view" id="view-cobrancas" hidden>
+      <section class="card">
+        <div class="card-head">
+          <div><h2>Cobrança de apontamento</h2><div class="card-sub" id="cobSub">—</div></div>
+          <div class="tools">
+            <button class="btn btn-line btn-sm" id="btnSelTodos">☑ Selecionar todos (Cobrar = SIM)</button>
+          </div>
+        </div>
+        <div class="banner">📬 <div>O e-mail vai para o colaborador <b>com cópia para <span id="cobLider">o líder</span></b> e lista só os dias úteis encerrados abaixo da meta. Férias, folgas, feriados e ausências da agenda já estão descontados. Use <b>Prévia</b> para ver o e-mail antes e <b>Teste</b> para receber só você.</div></div>
+        <div class="bulkbar" id="bulkCob"><span id="bulkCobTxt">0 selecionados</span><span class="spacer"></span>
+          <button class="btn btn-ghost btn-sm" data-bulk="teste">🧪 Enviar teste para mim</button>
+          <button class="btn btn-send btn-sm" data-bulk="enviar">📧 Cobrar selecionados</button>
+          <button class="btn btn-ghost btn-sm" data-bulk="limpar">✕</button></div>
+        <div class="cob-grid" id="cobGrid"></div>
+        <div id="cobEmDia" class="mt"></div>
+      </section>
+      <section class="card mt">
+        <div class="card-head"><div><h2>Histórico de cobranças</h2><div class="card-sub">Registrado na aba Log_Cobrancas da planilha</div></div></div>
+        <div class="tbl-wrap"><table class="data" id="tblLog"></table></div>
+      </section>
+    </div>
+
+    <!-- ===================== AUSÊNCIAS ===================== -->
+    <div class="view" id="view-ausencias" hidden>
+      <div id="ausAlertas"></div>
+      <section class="card">
+        <div class="card-head">
+          <div><h2>Ausências, férias e folgas consideradas</h2><div class="card-sub" id="ausSub">—</div></div>
+          <div class="tools">
+            <select class="sel" id="aDev"></select>
+            <select class="sel" id="aTipo"></select>
+            <select class="sel" id="aOrigem"></select>
+            <input class="search" id="aBusca" placeholder="Buscar…">
+            <button class="btn btn-soft btn-sm" data-goto="ausencias">＋ Lançar ausência manual</button>
+          </div>
+        </div>
+        <div class="cob-stats" id="ausResumo" style="margin-bottom:12px"></div>
+        <div class="tbl-wrap"><table class="data" id="tblAus"></table></div>
+      </section>
+    </div>
+
+    <!-- ===================== CADASTROS ===================== -->
+    <div class="view" id="view-cadastros" hidden>
+      <div class="subtabs" id="subtabs">
+        <button class="subtab active" data-cad="colaboradores">🧑‍💻 Colaboradores <span class="count" id="cnt-colaboradores">–</span></button>
+        <button class="subtab" data-cad="ausencias">🌴 Ausências manuais <span class="count" id="cnt-ausencias">–</span></button>
+        <button class="subtab" data-cad="feriados">📅 Feriados <span class="count" id="cnt-feriados">–</span></button>
+      </div>
+      <section class="card">
+        <div class="card-head">
+          <div><h2 id="cadTitulo">—</h2><div class="card-sub" id="cadSub">—</div></div>
+          <div class="tools">
+            <input class="search" id="cadBusca" placeholder="Buscar…">
+            <button class="btn btn-soft btn-sm" id="btnAddLinha">＋ Nova linha</button>
+          </div>
+        </div>
+        <div id="cadBanner"></div>
+        <div class="tbl-wrap"><table class="edit" id="cadTabela"></table></div>
+        <div class="ctl-foot">
+          <span class="ctl-status" id="cadStatus">Sem alterações</span>
+          <div class="btn-row">
+            <button class="btn btn-line" id="btnDescartar">Descartar</button>
+            <button class="btn btn-primary" id="btnSalvarCad">💾 Salvar alterações</button>
+          </div>
+        </div>
+      </section>
+      <section class="card mt" id="cardFeriadosAuto" hidden>
+        <div class="card-head"><div><h2>Feriados automáticos</h2><div class="card-sub">Nacionais + São Paulo, calculados sozinhos (inclusive Carnaval, Sexta-feira Santa e Corpus Christi). Use a tabela acima só para municipais, emendas e pontos facultativos.</div></div></div>
+        <div class="em-dia" id="feriadosAuto"></div>
+      </section>
+    </div>
+
+    <!-- ===================== CONFIGURAÇÕES ===================== -->
+    <div class="view" id="view-config" hidden>
+      <div class="gen-grid">
+        <div class="gen-col">
+          <section class="card">
+            <div class="card-head"><div><h2>Conexão com o Tempo</h2><div class="card-sub">Jira, Team ID do time e token pessoal (PAT)</div></div></div>
+            <div class="form-row">
+              <div class="fld"><label for="cUrl">URL do Jira</label><input class="inp" id="cUrl" placeholder="https://jiraproducao.totvs.com.br"></div>
+              <div class="fld"><label for="cTeam">Team ID</label><input class="inp" id="cTeam" placeholder="644"></div>
+            </div>
+            <div class="fld" style="margin-bottom:6px"><label for="cToken">Token (PAT)</label><input class="inp" type="password" id="cToken" placeholder="Deixe em branco para manter o atual" autocomplete="new-password"></div>
+            <p class="hint" id="cTokenHint"></p>
+          </section>
+          <section class="card">
+            <div class="card-head"><div><h2>Regras de cobrança</h2><div class="card-sub">Meta diária, período e quem recebe cópia</div></div></div>
+            <div class="form-row">
+              <div class="fld"><label for="cHora">Hora mínima por dia</label><input class="inp" type="number" step="0.5" min="1" max="24" id="cHora"></div>
+              <div class="fld"><label for="cLider">E-mail do líder (cópia)</label><input class="inp" type="email" id="cLider"></div>
+            </div>
+            <label class="switch"><input type="checkbox" id="cAuto"><span class="track"></span>Período automático: sempre o mês corrente</label>
+            <div class="form-row" id="cMesesFixos">
+              <div class="fld"><label for="cMesDe">Mês de (fixo)</label><input class="inp" type="month" id="cMesDe"></div>
+              <div class="fld"><label for="cMesAte">Mês até (fixo)</label><input class="inp" type="month" id="cMesAte"></div>
+            </div>
+            <p class="hint">Ausência parcial abate da meta: com 6h de meta e 2h de consulta, a meta do dia vira 4h. O dia de hoje nunca é cobrado.</p>
+          </section>
+          <section class="card">
+            <div class="card-head"><div><h2>Fontes de férias e ausências</h2><div class="card-sub">URL ou ID das planilhas do time</div></div></div>
+            <div class="fld" style="margin-bottom:12px"><label for="cFerias">Planilha de férias (Controle Consolidado, Folgas e Emendas, Contatos)</label><input class="inp" id="cFerias"></div>
+            <div class="fld" style="margin-bottom:12px"><label for="cAgenda">Planilha "Agendamento Ausências" (espelho da agenda)</label><input class="inp" id="cAgenda"></div>
+            <div class="btn-row">
+              <button class="btn btn-primary" id="btnSalvarCfg">💾 Salvar configurações</button>
+              <button class="btn btn-line" id="btnTestarCfg">🔌 Testar conexões</button>
+            </div>
+          </section>
+        </div>
+        <div class="gen-col">
+          <section class="card">
+            <div class="card-head"><div><h2>Rotinas automáticas</h2><div class="card-sub">Rodam sozinhas, sem ninguém abrir a planilha</div></div>
+              <span class="chip" id="rotStatus">…</span></div>
+            <div class="list" id="rotLista" style="margin-bottom:12px"></div>
+            <div class="btn-row">
+              <button class="btn btn-primary" data-acao="ativarRotinas">▶ Ativar / reconfigurar</button>
+              <button class="btn btn-danger" data-acao="desativarRotinas" data-confirma="Desativar as rotinas automáticas? Ninguém será cobrado nem receberá relatório até reativar.">⏸ Desativar</button>
+            </div>
+          </section>
+          <section class="card">
+            <div class="card-head"><div><h2>Ações manuais</h2><div class="card-sub">Executa agora, fora do horário das rotinas</div></div></div>
+            <div class="action-grid">
+              <button class="action" data-acao="extrair"><span class="ic">📊</span><span><b>Gravar abas na planilha</b><small>Resumo, pendentes, auditoria e extração</small></span></button>
+              <button class="action" data-acao="relatorioLider"><span class="ic">📨</span><span><b>Relatório para o líder</b><small>Envia o balanço do período agora</small></span></button>
+              <button class="action" data-acao="testeLider"><span class="ic">🧪</span><span><b>Teste da cobrança semanal</b><small>Todos os e-mails só para o líder</small></span></button>
+              <button class="action" data-acao="alertaSemanal" data-confirma="Enviar a cobrança oficial agora para TODOS os colaboradores com pendência e Cobrar = SIM?"><span class="ic">🚀</span><span><b>Cobrança semanal oficial</b><small>Todos com pendência e Cobrar = SIM</small></span></button>
+              <button class="action" data-acao="limparCache"><span class="ic">🧹</span><span><b>Limpar cache</b><small>Força buscar tudo de novo</small></span></button>
+              <button class="action" id="btnAbrirPlanilha"><span class="ic">📗</span><span><b>Abrir planilha</b><small>Abas e logs completos</small></span></button>
+            </div>
+          </section>
+          <section class="card">
+            <div class="card-head"><div><h2>Acesso pelo navegador</h2><div class="card-sub">Link do Web App deste painel</div></div></div>
+            <div class="fld"><input class="inp" id="cWebApp" readonly></div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer id="rodape">—</footer>
+
+  <script>
+    /* ======================= Estado / helpers ======================= */
+    const PALETA = ['#3b82f6','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ec4899','#f97316','#14b8a6','#6366f1','#84cc16','#ef4444','#0ea5e9'];
+    let DADOS = null, CTX = {}, LOG = [], charts = {};
+    let periodo = { mesDe: '', mesAte: '' };
+    let selecionados = new Set();
+    let ordem = { col: 'faltam', dir: -1 };
+    let CAD = { nome: 'colaboradores', colunas: [], linhas: [], original: '[]', origPorId: {}, carregado: {} };
+    let CFG = null;
+
+    const $ = id => document.getElementById(id);
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const fmtH = (v, d = 1) => (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+    const fmtData = iso => iso ? iso.split('-').reverse().join('/') : '';
+    const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    const nomeMes = m => { const [a, n] = m.split('-'); return `${MESES[+n - 1]}/${a}`; };
+    const iniciais = n => String(n || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase();
+    const corPessoa = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return PALETA[h % PALETA.length]; };
+    const avatar = (nome, email) => `<div class="avatar" style="background:${corPessoa(email || nome)}">${esc(iniciais(nome))}</div>`;
+
+    function chamar(fn, ...args) {
+      return new Promise((ok, falha) => {
+        google.script.run.withSuccessHandler(r => {
+          if (r && r.sucesso === false) falha(new Error(r.mensagem || 'Erro'));
+          else ok(r);
+        }).withFailureHandler(e => falha(e instanceof Error ? e : new Error(String(e && e.message || e))))[fn](...args);
+      });
+    }
+    function carregando(msg) { $('loaderMsg').textContent = msg || 'Carregando…'; $('loader').hidden = false; }
+    function pronto() { $('loader').hidden = true; }
+    let toastTimer;
+    function toast(msg, erro) {
+      const t = $('toast'); t.textContent = msg; t.className = 'toast show' + (erro ? ' err' : '');
+      clearTimeout(toastTimer); toastTimer = setTimeout(() => t.className = 'toast' + (erro ? ' err' : ''), erro ? 9000 : 5500);
+    }
+
+    /* ======================= Modal ======================= */
+    function abrirModal(titulo, corpoHtml, botoes, pequeno) {
+      $('modalTitulo').textContent = titulo;
+      $('modalCorpo').innerHTML = corpoHtml;
+      $('modal').className = 'modal' + (pequeno ? ' sm' : '');
+      const rod = $('modalRodape'); rod.innerHTML = '';
+      (botoes || [{ txt: 'Fechar', cls: 'btn-line' }]).forEach(b => {
+        const el = document.createElement('button');
+        el.className = 'btn ' + (b.cls || 'btn-line'); el.textContent = b.txt;
+        el.onclick = () => { if (!b.manter) fecharModal(); if (b.acao) b.acao(); };
+        rod.appendChild(el);
+      });
+      $('modalBg').hidden = false;
+    }
+    function fecharModal() { $('modalBg').hidden = true; $('modalCorpo').innerHTML = ''; }
+    $('modalFechar').onclick = fecharModal;
+    $('modalBg').addEventListener('click', e => { if (e.target === $('modalBg')) fecharModal(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharModal(); });
+    function confirmar(titulo, msg, txtOk, cls) {
+      return new Promise(res => abrirModal(titulo, `<p style="margin:0;line-height:1.55">${msg}</p>`, [
+        { txt: 'Cancelar', cls: 'btn-line', acao: () => res(false) },
+        { txt: txtOk || 'Confirmar', cls: cls || 'btn-primary', acao: () => res(true) }
+      ], true));
+    }
+
+    /* ======================= Navegação ======================= */
+    function irPara(view) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === view));
+      document.querySelectorAll('.view').forEach(v => v.hidden = v.id !== 'view-' + view);
+      if (view === 'cadastros' && !CAD.carregado[CAD.nome]) carregarCadastro(CAD.nome);
+      if (view === 'config' && !CFG) carregarConfig();
+      if (view === 'dash') setTimeout(() => Object.values(charts).forEach(c => c.resize()), 30);
+      try { localStorage.setItem('ts_view', view); } catch (e) {}
+    }
+    $('tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if (b) irPara(b.dataset.view); });
+    document.addEventListener('click', e => {
+      const g = e.target.closest('[data-goto]');
+      if (g) {
+        CAD.nome = g.dataset.goto; CAD.carregado[CAD.nome] = false;
+        document.querySelectorAll('.subtab').forEach(b => b.classList.toggle('active', b.dataset.cad === CAD.nome));
+        irPara('cadastros');
+      }
+    });
+
+    /* ======================= Carga ======================= */
+    async function carregar(forcar) {
+      carregando(forcar ? 'Buscando tudo de novo no Tempo, agenda e férias…' : 'Buscando apontamentos no Tempo…');
+      try {
+        const r = await chamar('obterDadosPainel', { mesDe: periodo.mesDe, mesAte: periodo.mesAte, forcar: !!forcar });
+        DADOS = r.apuracao; CTX = r.contexto || {}; LOG = r.logCobrancas || [];
+        periodo = { mesDe: DADOS.periodo.mesDe, mesAte: DADOS.periodo.mesAte };
+        $('fDe').value = periodo.mesDe; $('fAte').value = periodo.mesAte;
+        $('dashErro').innerHTML = '';
+        renderTudo();
+        if (forcar) toast('Dados atualizados.');
+      } catch (e) {
+        $('dashErro').innerHTML = `<div class="banner bad">⚠️ <div><b>Não foi possível carregar os dados.</b><br>${esc(e.message)}<br>Confira a aba ⚙️ Configurações (token, Team ID) e tente de novo.</div></div>`;
+        toast(e.message, true);
+      } finally { pronto(); }
+    }
+    $('btnAtualizar').onclick = () => carregar(true);
+    $('btnPeriodo').onclick = () => {
+      let de = $('fDe').value, ate = $('fAte').value || de;
+      if (!de) return toast('Escolha o mês inicial.', true);
+      if (ate < de) [de, ate] = [ate, de];
+      periodo = { mesDe: de, mesAte: ate }; selecionados.clear(); carregar(false);
+    };
+
+    function renderTudo() {
+      const p = DADOS.periodo;
+      const rotulo = p.mesDe === p.mesAte ? nomeMes(p.mesDe) : `${nomeMes(p.mesDe)} a ${nomeMes(p.mesAte)}`;
+      $('subtitulo').textContent = `${rotulo} · ${fmtData(p.de)} a ${fmtData(p.ate)} · meta ${fmtH(DADOS.horaMinima)}h/dia · atualizado ${DADOS.geradoEm}`;
+      $('rodape').innerHTML = `${DADOS.totalWorklogs} apontamento(s) lidos do Tempo · ${DADOS.ausencias.registros.length} ausência(s) consideradas` +
+        (CTX.urlPlanilha ? ` · <a href="${esc(CTX.urlPlanilha)}" target="_blank">abrir planilha ↗</a>` : '');
+      const pend = DADOS.devs.filter(d => d.totais.diasPendentes > 0).length;
+      $('badgeCob').hidden = !pend; $('badgeCob').textContent = pend;
+      renderKpis(); renderCharts(); renderAtencao(); renderHeatmap(); renderTabela(); renderCobrancas(); renderLog(); renderAusencias();
+    }
+
+    /* ======================= Dashboard ======================= */
+    function totaisTime() {
+      let meta = 0, cumprido = 0, apont = 0, falt = 0, diasPend = 0, diasAus = 0, horasAus = 0, esperadas = 0;
+      DADOS.devs.forEach(d => {
+        d.dias.forEach(x => { if (x.s === 'OK' || x.s === 'PEND') { meta += x.m; cumprido += Math.min(x.h, x.m); } });
+        apont += d.totais.apontadas; esperadas += d.totais.esperadas; falt += d.totais.horasFaltantes;
+        diasPend += d.totais.diasPendentes; diasAus += d.totais.diasAusencia; horasAus += d.totais.horasAusencia;
+      });
+      return { meta, cumprido, perc: meta ? cumprido / meta : 1, apont, esperadas, saldo: apont - esperadas, falt, diasPend, diasAus, horasAus };
+    }
+
+    function renderKpis() {
+      const t = totaisTime();
+      const devsPend = DADOS.devs.filter(d => d.totais.diasPendentes > 0).length;
+      const p = Math.round(t.perc * 1000) / 10;
+      const cor = p >= 95 ? '#10b981' : p >= 80 ? '#f59e0b' : '#ef4444';
+      const pill = p >= 95 ? ['pill-ok', 'Time em dia'] : p >= 80 ? ['pill-warn', 'Atenção'] : ['pill-bad', 'Abaixo da meta'];
+      const C = 2 * Math.PI * 44;
+      const kpi = (label, icon, accent, valor, unid, pe) => `<div class="card kpi" style="--accent:${accent}">
+        <div class="kpi-top"><span class="kpi-label">${label}</span><span class="kpi-icon">${icon}</span></div>
+        <div><div class="kpi-value">${valor}${unid ? `<small>${unid}</small>` : ''}</div><div class="kpi-foot">${pe || '&nbsp;'}</div></div></div>`;
+      $('kpis').innerHTML = `
+        <div class="card kpi kpi-hero">
+          <div class="ring"><svg width="104" height="104"><circle cx="52" cy="52" r="44" stroke="#eef2f8" stroke-width="11" fill="none"/>
+            <circle cx="52" cy="52" r="44" stroke="${cor}" stroke-width="11" fill="none" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - Math.min(1, t.perc))}" style="transition:stroke-dashoffset .8s"/></svg>
+            <div class="ring-val">${fmtH(p, 0)}%</div></div>
+          <div><div class="kpi-label">Cumprimento da meta</div><div style="font-size:12px;color:var(--ink-3);margin-top:4px;font-weight:600">${fmtH(t.cumprido, 0)}h de ${fmtH(t.meta, 0)}h nos dias encerrados</div>
+          <span class="pill ${pill[0]}">● ${pill[1]}</span></div>
+        </div>
+        ${kpi('Meta do período', '🎯', '#3b82f6', fmtH(t.esperadas, 0), 'h', 'já com ausências descontadas')}
+        ${kpi('Horas apontadas', '⏱️', '#06b6d4', fmtH(t.apont, 0), 'h', 'inclui hoje')}
+        ${kpi('Saldo', t.saldo >= 0 ? '📈' : '📉', t.saldo >= 0 ? '#10b981' : '#ef4444', (t.saldo > 0 ? '+' : '') + fmtH(t.saldo, 0), 'h', 'apontado − meta')}
+        ${kpi('Com pendência', '⚠️', '#ef4444', devsPend, `/${DADOS.devs.length}`, 'colaboradores')}
+        ${kpi('Dias pendentes', '📅', '#f97316', t.diasPend, '', `faltam ${fmtH(t.falt)}h`)}
+        ${kpi('Ausências', '🌴', '#8b5cf6', t.diasAus, ' dias', `+ ${fmtH(t.horasAus)}h parciais`)}`;
+    }
+
+    function novoGrafico(id, cfg) { if (charts[id]) charts[id].destroy(); charts[id] = new Chart($(id), cfg); }
+
+    function renderCharts() {
+      if (typeof Chart === 'undefined') return;
+      Chart.defaults.font.family = "'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif";
+      Chart.defaults.font.size = 11.5; Chart.defaults.color = '#44546f';
+      Chart.defaults.plugins.legend.labels.usePointStyle = true; Chart.defaults.plugins.legend.labels.boxWidth = 8;
+      Chart.defaults.plugins.tooltip.backgroundColor = '#0b1f3a'; Chart.defaults.plugins.tooltip.padding = 10; Chart.defaults.plugins.tooltip.cornerRadius = 10;
+
+      const devs = DADOS.devs.slice().sort((a, b) => b.totais.esperadas - a.totais.esperadas);
+      $('boxColab').style.height = Math.max(260, devs.length * 34 + 60) + 'px';
+      const apontEnc = d => d.dias.reduce((s, x) => s + ((x.s === 'OK' || x.s === 'PEND') ? x.h : 0), 0);
+      novoGrafico('chColab', {
+        type: 'bar',
+        data: { labels: devs.map(d => d.nome.split(' ').slice(0, 2).join(' ')), datasets: [
+          { label: 'Meta', data: devs.map(d => d.totais.esperadas), backgroundColor: '#dbe5f3', borderRadius: 6, barPercentage: .9, categoryPercentage: .7 },
+          { label: 'Apontado', data: devs.map(apontEnc), backgroundColor: devs.map(d => apontEnc(d) >= d.totais.esperadas ? '#10b981' : '#f97316'), borderRadius: 6, barPercentage: .9, categoryPercentage: .7 }
+        ] },
+        options: { indexAxis: 'y', maintainAspectRatio: false, plugins: { legend: { position: 'top', align: 'end' },
+          tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmtH(c.raw)}h` } } },
+          scales: { x: { grid: { color: '#f1f4f9' }, ticks: { callback: v => v + 'h' } }, y: { grid: { display: false } } } }
+      });
+
+      const dias = DADOS.dias;
+      const soma = (i, campo) => DADOS.devs.reduce((s, d) => s + (d.dias[i][campo] || 0), 0);
+      novoGrafico('chDia', {
+        data: { labels: dias.map(d => d.br.substring(0, 5)), datasets: [
+          { type: 'line', label: 'Meta do dia', data: dias.map((d, i) => d.feriado ? null : soma(i, 'm')), borderColor: '#0b1f3a', borderWidth: 2, pointRadius: 2, tension: .25, spanGaps: true },
+          { type: 'bar', label: 'Apontado', data: dias.map((d, i) => soma(i, 'h')), borderRadius: 6,
+            backgroundColor: dias.map((d, i) => d.feriado ? '#e2e8f0' : d.iso >= DADOS.periodo.hoje ? '#93c5fd' : soma(i, 'h') >= soma(i, 'm') ? '#34d399' : '#fb923c') }
+        ] },
+        options: { maintainAspectRatio: false, plugins: { legend: { position: 'top', align: 'end' },
+          tooltip: { callbacks: { title: c => { const d = dias[c[0].dataIndex]; return d.br + (d.feriado ? ' · ' + d.feriado : d.iso === DADOS.periodo.hoje ? ' · hoje' : ''); }, label: c => `${c.dataset.label}: ${fmtH(c.raw)}h` } } },
+          scales: { x: { grid: { display: false } }, y: { grid: { color: '#f1f4f9' }, ticks: { callback: v => v + 'h' } } } }
+      });
+    }
+
+    function renderAtencao() {
+      const lista = DADOS.devs.filter(d => d.totais.horasFaltantes > 0).sort((a, b) => b.totais.horasFaltantes - a.totais.horasFaltantes);
+      if (!lista.length) { $('atencao').innerHTML = '<div class="ok-box"><b>🎉</b>Ninguém com pendência no período.</div>'; return; }
+      const max = lista[0].totais.horasFaltantes;
+      $('atencao').innerHTML = lista.map(d => `<div class="rank-item">
+        ${avatar(d.nome, d.email)}
+        <div style="min-width:0"><div class="rank-name">${esc(d.nome)}</div>
+          <div class="rank-meta">${d.totais.diasPendentes} dia(s) · faltam ${fmtH(d.totais.horasFaltantes)}h${d.ultimaCobranca ? ' · cobrado ' + esc(d.ultimaCobranca.substring(0, 5)) : ''}</div>
+          <div class="bar"><span style="width:${Math.max(4, d.totais.horasFaltantes / max * 100)}%;background:linear-gradient(90deg,#f97316,#ef4444)"></span></div></div>
+        <button class="btn btn-soft btn-sm" data-cobrar="${esc(d.email)}" title="Prévia e envio da cobrança">📧</button></div>`).join('');
+    }
+
+    function corCelula(x) {
+      if (x.s === 'FER') return { bg: '#e2e8f0', fg: '#64748b', txt: 'F' };
+      if (x.s === 'AUS') return { bg: '#a78bfa', fg: '#fff', txt: 'A' };
+      const txt = x.h ? fmtH(x.h, x.h % 1 ? 1 : 0) : '0';
+      if (x.s === 'HOJE') return { bg: '#fff', fg: '#0f5b78', txt: txt, borda: '1.5px dashed #0f5b78' };
+      if (x.s === 'OK') return { bg: x.m === 0 && x.h === 0 ? '#bbf7d0' : '#34d399', fg: '#064e3b', txt: txt };
+      if (!x.h) return { bg: '#ef4444', fg: '#fff', txt: '0' };
+      if (x.h < x.m / 2) return { bg: '#fb923c', fg: '#fff', txt: txt };
+      return { bg: '#fcd34d', fg: '#78350f', txt: txt };
+    }
+
+    function renderHeatmap() {
+      const dias = DADOS.dias, hoje = DADOS.periodo.hoje;
+      const DS = ['D','S','T','Q','Q','S','S'];
+      let h = '<table class="heat"><thead><tr><th></th>' + dias.map(d =>
+        `<th class="${d.feriado ? 'fer' : ''} ${d.iso === hoje ? 'hoje' : ''}" title="${esc(d.br + (d.feriado ? ' · ' + d.feriado : ''))}">${DS[d.dow]}<br>${d.br.substring(0, 2)}</th>`).join('') + '</tr></thead><tbody>';
+      DADOS.devs.forEach(dev => {
+        h += `<tr><td class="name" data-det="${esc(dev.email)}" title="Ver detalhe">${esc(dev.nome)}</td>`;
+        dev.dias.forEach((x, i) => {
+          const c = corCelula(x), d = dias[i];
+          const tip = `${d.br} · ${fmtH(x.h)}h apontadas` + (x.s === 'FER' ? ` · feriado: ${x.a}` : x.s === 'AUS' ? ` · ${x.a}` : ` · meta ${fmtH(x.m)}h${x.a ? ' · ' + x.a : ''}`) + (x.s === 'HOJE' ? ' · hoje (não cobrado)' : '');
+          const sombra = x.p && x.s !== 'AUS' ? 'box-shadow:inset 0 -3px 0 #7c3aed;' : '';
+          h += `<td class="cell" title="${esc(tip)}" style="background:${c.bg};color:${c.fg};${c.borda ? 'border:' + c.borda + ';' : ''}${sombra}">${c.txt}</td>`;
+        });
+        h += '</tr>';
+      });
+      $('heatmap').innerHTML = DADOS.devs.length ? h + '</tbody></table>' : '<div class="empty"><b>Nenhum colaborador</b>Cadastre o time em 🗂️ Cadastros.</div>';
+    }
+
+    /* ---------- Tabela de colaboradores ---------- */
+    const COLS = [
+      { k: 'sel', t: '' },
+      { k: 'nome', t: 'Colaborador', sort: d => d.nome },
+      { k: 'dias', t: 'Dias pend.', num: 1, sort: d => d.totais.diasPendentes },
+      { k: 'faltam', t: 'Faltam', num: 1, sort: d => d.totais.horasFaltantes },
+      { k: 'meta', t: 'Meta', num: 1, sort: d => d.totais.esperadas },
+      { k: 'apont', t: 'Apontado', num: 1, sort: d => d.totais.apontadas },
+      { k: 'saldo', t: 'Saldo', num: 1, sort: d => d.totais.saldo },
+      { k: 'aus', t: 'Ausências', sort: d => d.totais.diasAusencia * 100 + d.totais.horasAusencia },
+      { k: 'ult', t: 'Última cobrança', sort: d => d.ultimaCobranca ? d.ultimaCobranca.split(' ')[0].split('/').reverse().join('') + d.ultimaCobranca.split(' ')[1] : '' },
+      { k: 'st', t: 'Status', sort: d => d.status },
+      { k: 'ac', t: '' }
+    ];
+
+    function devsFiltrados() {
+      const q = $('busca').value.trim().toLowerCase(), st = $('fStatus').value;
+      const col = COLS.find(c => c.k === ordem.col) || COLS[3];
+      return DADOS.devs.filter(d => (!q || (d.nome + ' ' + d.email).toLowerCase().includes(q)) && (!st || d.status === st))
+        .sort((a, b) => { const x = col.sort(a), y = col.sort(b); return (x > y ? 1 : x < y ? -1 : 0) * ordem.dir; });
+    }
+
+    function renderTabela() {
+      const lista = devsFiltrados();
+      const pendVisiveis = lista.filter(d => d.totais.diasPendentes > 0);
+      const todosSel = pendVisiveis.length && pendVisiveis.every(d => selecionados.has(d.email));
+      let h = '<thead><tr>' + COLS.map(c => c.k === 'sel'
+        ? `<th><input type="checkbox" id="selTodosTbl" ${todosSel ? 'checked' : ''} title="Selecionar todos com pendência"></th>`
+        : `<th class="${c.num ? 'num' : ''} ${c.sort ? 'sort' : ''}" data-col="${c.k}">${c.t}${ordem.col === c.k ? (ordem.dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('') + '</tr></thead><tbody>';
+      lista.forEach(d => {
+        const t = d.totais, pend = t.diasPendentes > 0;
+        const tags = (!d.cobrar ? ' <span class="chip c-gray" title="Coluna Cobrar = NÃO: fica fora da cobrança automática">não cobrar</span>' : '') +
+          (d.foraDePara ? ' <span class="chip c-warn" title="Apontou no Tempo mas não está nos Colaboradores">fora do cadastro</span>' : '');
+        h += `<tr>
+          <td>${pend ? `<input type="checkbox" data-sel="${esc(d.email)}" ${selecionados.has(d.email) ? 'checked' : ''}>` : ''}</td>
+          <td><div class="who">${avatar(d.nome, d.email)}<div><b>${esc(d.nome)}${tags}</b><small>${esc(d.email)}</small></div></div></td>
+          <td class="num">${t.diasPendentes ? `<b style="color:#b91c1c">${t.diasPendentes}</b>` : '–'}</td>
+          <td class="num">${t.horasFaltantes ? `<b style="color:#b91c1c">${fmtH(t.horasFaltantes)}h</b>` : '–'}</td>
+          <td class="num">${fmtH(t.esperadas)}h</td>
+          <td class="num" style="color:var(--blue);font-weight:700">${fmtH(t.apontadas)}h</td>
+          <td class="num" style="font-weight:800;color:${t.saldo >= 0 ? '#047857' : '#b91c1c'}">${t.saldo > 0 ? '+' : ''}${fmtH(t.saldo)}h</td>
+          <td>${t.diasAusencia ? `<span class="chip c-vio">${t.diasAusencia}d</span> ` : ''}${t.horasAusencia ? `<span class="chip c-info">${fmtH(t.horasAusencia)}h</span>` : ''}${!t.diasAusencia && !t.horasAusencia ? '–' : ''}</td>
+          <td style="font-size:12px;color:var(--ink-2)">${esc(d.ultimaCobranca || '–')}</td>
+          <td>${pend ? '<span class="chip c-bad">Pendente</span>' : '<span class="chip c-ok">Em dia</span>'}</td>
+          <td><div class="acoes">
+            <button class="icon-btn" data-det="${esc(d.email)}" title="Detalhe dia a dia">🔎</button>
+            ${pend ? `<button class="icon-btn" data-prev="${esc(d.email)}" title="Prévia do e-mail">👁️</button>
+            <button class="btn btn-send btn-sm" data-cobrar="${esc(d.email)}" title="Enviar cobrança">📧 Cobrar</button>` : ''}
+          </div></td></tr>`;
+      });
+      $('tabela').innerHTML = h + '</tbody>';
+      const pendTot = DADOS.devs.filter(d => d.totais.diasPendentes > 0).length;
+      $('tblSub').textContent = `${lista.length} colaborador(es) · ${pendTot} com pendência · clique no cabeçalho para ordenar`;
+      atualizarBulk();
+    }
+    $('busca').oninput = renderTabela; $('fStatus').onchange = renderTabela;
+    $('tabela').addEventListener('click', e => {
+      const th = e.target.closest('th[data-col]');
+      if (th && COLS.find(c => c.k === th.dataset.col).sort) {
+        ordem = { col: th.dataset.col, dir: ordem.col === th.dataset.col ? -ordem.dir : (th.dataset.col === 'nome' ? 1 : -1) };
+        renderTabela();
+      }
+    });
+    $('tabela').addEventListener('change', e => {
+      if (e.target.id === 'selTodosTbl') {
+        devsFiltrados().filter(d => d.totais.diasPendentes > 0).forEach(d => e.target.checked ? selecionados.add(d.email) : selecionados.delete(d.email));
+        renderTabela(); renderCobrancas();
+      } else if (e.target.dataset.sel) {
+        e.target.checked ? selecionados.add(e.target.dataset.sel) : selecionados.delete(e.target.dataset.sel);
+        renderTabela(); renderCobrancas();
+      }
+    });
+
+    $('btnCsv').onclick = () => {
+      const linhas = [['Colaborador', 'E-mail', 'Dias pendentes', 'Horas faltantes', 'Meta', 'Apontado', 'Saldo', 'Dias ausência', 'Horas ausência', 'Última cobrança', 'Status']];
+      devsFiltrados().forEach(d => { const t = d.totais; linhas.push([d.nome, d.email, t.diasPendentes, t.horasFaltantes, t.esperadas, t.apontadas, t.saldo, t.diasAusencia, t.horasAusencia, d.ultimaCobranca, d.status]); });
+      const csv = '﻿' + linhas.map(l => l.map(v => `"${String(v).replace(/"/g, '""').replace('.', ',')}"`).join(';')).join('\n');
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      a.download = `timesheet_${DADOS.periodo.de}_${DADOS.periodo.ate}.csv`; a.click();
+    };
+
+    /* ---------- Detalhe do colaborador ---------- */
+    function abrirDetalhe(email) {
+      const d = DADOS.devs.find(x => x.email === email); if (!d) return;
+      const rot = { OK: ['c-ok', 'OK'], PEND: ['c-bad', 'Pendente'], AUS: ['c-vio', 'Ausência'], FER: ['c-gray', 'Feriado'], HOJE: ['c-info', 'Hoje'] };
+      const t = d.totais;
+      const corpo = `<div class="cob-stats" style="margin-bottom:14px">
+          <span class="chip c-info">Meta ${fmtH(t.esperadas)}h</span><span class="chip c-info">Apontado ${fmtH(t.apontadas)}h</span>
+          <span class="chip ${t.saldo >= 0 ? 'c-ok' : 'c-bad'}">Saldo ${t.saldo > 0 ? '+' : ''}${fmtH(t.saldo)}h</span>
+          ${t.diasPendentes ? `<span class="chip c-bad">${t.diasPendentes} dia(s) pendente(s) · faltam ${fmtH(t.horasFaltantes)}h</span>` : '<span class="chip c-ok">Em dia</span>'}
+          ${t.diasAusencia ? `<span class="chip c-vio">${t.diasAusencia} dia(s) de ausência</span>` : ''}
+        </div>
+        <div class="det-days">${d.dias.map((x, i) => { const dia = DADOS.dias[i], r = rot[x.s];
+          return `<div class="det-day" style="border-left:4px solid ${corCelula(x).bg === '#fff' ? '#0f5b78' : corCelula(x).bg}">
+            <b>${dia.br.substring(0, 5)} <span class="chip ${r[0]}" style="float:right">${r[1]}</span></b>
+            <small>${fmtH(x.h)}h apontadas${x.s === 'FER' || x.s === 'AUS' ? '' : ' · meta ' + fmtH(x.m) + 'h'}</small>
+            ${x.a ? `<small style="color:#6d28d9">${esc(x.a)}</small>` : ''}</div>`; }).join('')}</div>`;
+      const btns = [{ txt: 'Fechar', cls: 'btn-line' }];
+      if (t.diasPendentes) btns.push({ txt: '📧 Cobrar', cls: 'btn-send', acao: () => fluxoCobranca(email) });
+      abrirModal(`${d.nome} · ${d.email}`, corpo, btns);
+    }
+
+    /* ======================= Cobranças ======================= */
+    function renderCobrancas() {
+      if (!DADOS) return;
+      $('cobLider').textContent = CTX.emailLider || 'o líder';
+      const pend = DADOS.devs.filter(d => d.totais.diasPendentes > 0).sort((a, b) => b.totais.horasFaltantes - a.totais.horasFaltantes);
+      const emDia = DADOS.devs.filter(d => !d.totais.diasPendentes);
+      $('cobSub').textContent = `${pend.length} colaborador(es) com pendência em ${fmtData(DADOS.periodo.de)} a ${fmtData(DADOS.periodo.ate)} (dias encerrados)`;
+      $('cobGrid').innerHTML = pend.length ? pend.map(d => {
+        const ps = d.dias.map((x, i) => ({ x, dia: DADOS.dias[i] })).filter(o => o.x.s === 'PEND');
+        return `<div class="cob ${selecionados.has(d.email) ? 'sel' : ''}">
+          <div class="cob-head"><input type="checkbox" data-sel="${esc(d.email)}" ${selecionados.has(d.email) ? 'checked' : ''}>
+            ${avatar(d.nome, d.email)}<div class="who"><div style="min-width:0"><b style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(d.nome)}</b><small>${esc(d.email)}</small></div></div></div>
+          <div class="cob-stats"><span class="chip c-bad">${d.totais.diasPendentes} dia(s)</span><span class="chip c-warn">faltam ${fmtH(d.totais.horasFaltantes)}h</span>
+            ${!d.cobrar ? '<span class="chip c-gray">Cobrar = NÃO</span>' : ''}</div>
+          <div class="days">${ps.map(o => `<span class="day ${o.x.h ? '' : 'zero'} ${o.x.a ? 'aus' : ''}" title="${esc(`${o.dia.br}: ${fmtH(o.x.h)}h de ${fmtH(o.x.m)}h${o.x.a ? ' · ' + o.x.a : ''}`)}">${o.dia.br.substring(0, 5)} · ${fmtH(o.x.h)}/${fmtH(o.x.m, 0)}h</span>`).join('')}</div>
+          <div class="cob-last">${d.ultimaCobranca ? '🕒 Última cobrança: ' + esc(d.ultimaCobranca) : 'Ainda não cobrado neste painel'}</div>
+          <div class="cob-foot">
+            <button class="btn btn-line btn-sm" data-prev="${esc(d.email)}">👁️ Prévia</button>
+            <button class="btn btn-line btn-sm" data-teste="${esc(d.email)}">🧪 Teste</button>
+            <button class="btn btn-send btn-sm" data-cobrar="${esc(d.email)}">📧 Cobrar agora</button>
+          </div></div>`;
+      }).join('') : '<div class="ok-box" style="grid-column:1/-1"><b>🎉</b>Nenhuma pendência no período. Todo mundo em dia!</div>';
+      $('cobEmDia').innerHTML = emDia.length ? `<div class="card-sub" style="margin-bottom:8px;font-weight:700">✅ Em dia (${emDia.length})</div><div class="em-dia">${emDia.map(d => `<span class="chip c-ok">${esc(d.nome)}</span>`).join('')}</div>` : '';
+      atualizarBulk();
+    }
+    $('cobGrid').addEventListener('change', e => {
+      if (!e.target.dataset.sel) return;
+      e.target.checked ? selecionados.add(e.target.dataset.sel) : selecionados.delete(e.target.dataset.sel);
+      renderCobrancas(); renderTabela();
+    });
+    $('btnSelTodos').onclick = () => {
+      DADOS.devs.filter(d => d.totais.diasPendentes > 0 && d.cobrar).forEach(d => selecionados.add(d.email));
+      renderCobrancas(); renderTabela();
+    };
+
+    function atualizarBulk() {
+      const n = selecionados.size, txt = `${n} selecionado(s)`;
+      ['bulkDash', 'bulkCob'].forEach(id => $(id).classList.toggle('show', n > 0));
+      $('bulkDashTxt').textContent = txt; $('bulkCobTxt').textContent = txt;
+    }
+    document.querySelectorAll('.bulkbar').forEach(b => b.addEventListener('click', async e => {
+      const a = e.target.closest('[data-bulk]'); if (!a) return;
+      if (a.dataset.bulk === 'limpar') { selecionados.clear(); renderTabela(); renderCobrancas(); return; }
+      const emails = [...selecionados];
+      const nomes = emails.map(e => (DADOS.devs.find(d => d.email === e) || {}).nome || e);
+      if (a.dataset.bulk === 'teste') return enviar(emails, true);
+      if (await confirmar('Enviar cobrança', `Enviar a cobrança para <b>${emails.length}</b> colaborador(es) com cópia para <b>${esc(CTX.emailLider)}</b>?<br><br>${nomes.map(esc).join(', ')}`, '📧 Enviar cobranças', 'btn-send')) enviar(emails, false);
+    }));
+
+    async function previa(email) {
+      carregando('Montando o e-mail…');
+      try {
+        const r = await chamar('previewCobrancaPainel', { email, mesDe: periodo.mesDe, mesAte: periodo.mesAte });
+        pronto();
+        if (!r.html) return toast(r.mensagem || 'Sem pendências.');
+        return r;
+      } catch (e) { pronto(); toast(e.message, true); return null; }
+    }
+
+    async function fluxoCobranca(email) {
+      const r = await previa(email); if (!r) return;
+      const d = DADOS.devs.find(x => x.email === email) || { nome: email };
+      abrirModal(`Cobrança · ${d.nome}`, `<div class="mail-meta"><b>Para:</b> ${esc(r.para)}<br><b>Cópia:</b> ${esc(r.cc)}<br><b>Assunto:</b> ${esc(r.assunto)}</div><iframe class="mail" id="mailFrame" sandbox></iframe>`, [
+        { txt: 'Cancelar', cls: 'btn-line' },
+        { txt: '🧪 Enviar teste para mim', cls: 'btn-line', acao: () => enviar([email], true) },
+        { txt: '📧 Enviar cobrança', cls: 'btn-send', acao: () => enviar([email], false) }
+      ]);
+      $('mailFrame').srcdoc = r.html;
+    }
+
+    async function verPrevia(email) {
+      const r = await previa(email); if (!r) return;
+      abrirModal('Prévia do e-mail', `<div class="mail-meta"><b>Para:</b> ${esc(r.para)}<br><b>Cópia:</b> ${esc(r.cc)}<br><b>Assunto:</b> ${esc(r.assunto)}</div><iframe class="mail" id="mailFrame" sandbox></iframe>`,
+        [{ txt: 'Fechar', cls: 'btn-line' }, { txt: '📧 Enviar cobrança', cls: 'btn-send', acao: () => fluxoCobranca(email) }]);
+      $('mailFrame').srcdoc = r.html;
+    }
+
+    async function enviar(emails, teste) {
+      carregando(teste ? 'Enviando teste para você…' : `Enviando ${emails.length} cobrança(s)…`);
+      try {
+        const r = await chamar('enviarCobrancasPainel', { emails, mesDe: periodo.mesDe, mesAte: periodo.mesAte, teste });
+        LOG = r.log || LOG;
+        if (!teste) {
+          const agora = new Date(), q = `${String(agora.getDate()).padStart(2, '0')}/${String(agora.getMonth() + 1).padStart(2, '0')}/${agora.getFullYear()} ${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`;
+          DADOS.devs.forEach(d => { if (emails.includes(d.email)) d.ultimaCobranca = q; });
+          emails.forEach(e => selecionados.delete(e));
+        }
+        renderTabela(); renderCobrancas(); renderLog(); renderAtencao();
+        toast(r.mensagem, r.falhas && r.falhas.length);
+      } catch (e) { toast(e.message, true); }
+      finally { pronto(); }
+    }
+
+    document.addEventListener('click', e => {
+      const c = e.target.closest('[data-cobrar]'); if (c) return fluxoCobranca(c.dataset.cobrar);
+      const p = e.target.closest('[data-prev]'); if (p) return verPrevia(p.dataset.prev);
+      const t = e.target.closest('[data-teste]'); if (t) return enviar([t.dataset.teste], true);
+      const d = e.target.closest('[data-det]'); if (d) return abrirDetalhe(d.dataset.det);
+    });
+
+    function renderLog() {
+      if (!LOG.length) { $('tblLog').innerHTML = '<tbody><tr><td class="empty" colspan="7"><b>Nenhuma cobrança registrada ainda</b>As cobranças enviadas pelo painel e pela rotina semanal aparecem aqui.</td></tr></tbody>'; return; }
+      $('tblLog').innerHTML = '<thead><tr><th>Quando</th><th>Colaborador</th><th>Período</th><th>Dias cobrados</th><th class="num">Faltavam</th><th>Tipo</th><th>Enviado por</th></tr></thead><tbody>' +
+        LOG.map(l => `<tr><td style="white-space:nowrap">${esc(l.quando)}</td><td><div class="who" style="min-width:0">${avatar(l.nome, l.email)}<div><b>${esc(l.nome)}</b><small>${esc(l.email)}</small></div></div></td>
+          <td style="white-space:nowrap">${esc(l.periodo.split(' a ').map(fmtData).join(' a '))}</td><td style="font-size:12px">${esc(l.dias)}</td><td class="num">${esc(String(l.horas).replace('.', ','))}h</td>
+          <td><span class="chip ${/teste/i.test(l.tipo) ? 'c-gray' : /semanal/i.test(l.tipo) ? 'c-info' : 'c-vio'}">${esc(l.tipo)}</span></td><td style="font-size:12px;color:var(--ink-3)">${esc(l.por)}</td></tr>`).join('') + '</tbody>';
+    }
+
+    /* ======================= Ausências ======================= */
+    const COR_TIPO = { 'Férias': 'c-vio', 'Folga': 'c-info', 'Consulta/Exame': 'c-warn', 'Treinamento': 'c-ok', 'Atestado': 'c-bad', 'Licença': 'c-bad' };
+    function renderAusencias() {
+      const A = DADOS.ausencias, de = DADOS.periodo.de, ate = DADOS.periodo.ate;
+      const doPeriodo = A.registros.filter(r => r.fim >= de && r.inicio <= ate);
+      const opts = (id, vals, todos) => { const atual = $(id).value; $(id).innerHTML = `<option value="">${todos}</option>` + vals.map(v => `<option value="${esc(v[0])}">${esc(v[1])}</option>`).join(''); $(id).value = vals.some(v => v[0] === atual) ? atual : ''; };
+      opts('aDev', [...new Map(doPeriodo.map(r => [r.email, r.nome])).entries()].sort((a, b) => a[1].localeCompare(b[1])), 'Todos os colaboradores');
+      opts('aTipo', [...new Set(doPeriodo.map(r => r.tipo))].sort().map(t => [t, t]), 'Todos os tipos');
+      opts('aOrigem', [...new Set(doPeriodo.map(r => r.origem))].sort().map(t => [t, t]), 'Todas as origens');
+
+      let alertas = '';
+      if (A.naoVinculados.length) alertas += `<div class="banner warn">🔎 <div><b>${A.naoVinculados.length} evento(s) sem colaborador identificado</b> — não estão sendo descontados de ninguém: ${A.naoVinculados.map(esc).join(', ')}.<br>Se for um apelido (ex.: "Carlão"), cadastre na coluna <b>Apelidos</b> do colaborador. <button class="btn btn-soft btn-sm" data-goto="colaboradores" style="margin-left:6px">Cadastrar apelido</button></div></div>`;
+      if (A.avisos.length) alertas += `<div class="banner bad">⚠️ <div>${A.avisos.map(esc).join('<br>')}</div></div>`;
+      $('ausAlertas').innerHTML = alertas;
+
+      const porTipo = {}; doPeriodo.forEach(r => porTipo[r.tipo] = (porTipo[r.tipo] || 0) + 1);
+      $('ausResumo').innerHTML = Object.keys(porTipo).sort().map(t => `<span class="chip ${COR_TIPO[t] || 'c-gray'}">${esc(t)}: ${porTipo[t]}</span>`).join('');
+      filtrarAusencias();
+    }
+    function filtrarAusencias() {
+      const A = DADOS.ausencias, de = DADOS.periodo.de, ate = DADOS.periodo.ate;
+      const fd = $('aDev').value, ft = $('aTipo').value, fo = $('aOrigem').value, q = $('aBusca').value.trim().toLowerCase();
+      const lista = A.registros.filter(r => r.fim >= de && r.inicio <= ate && (!fd || r.email === fd) && (!ft || r.tipo === ft) && (!fo || r.origem === fo) &&
+        (!q || (r.nome + ' ' + r.titulo + ' ' + r.tipo).toLowerCase().includes(q))).sort((a, b) => (a.inicio + a.nome).localeCompare(b.inicio + b.nome));
+      $('ausSub').textContent = `${lista.length} registro(s) que tocam o período · fontes: planilha de férias, agenda de ausências e lançamentos manuais`;
+      $('tblAus').innerHTML = lista.length ? '<thead><tr><th>Colaborador</th><th>Tipo</th><th>Início</th><th>Fim</th><th>Horário</th><th>Origem</th><th>Descrição</th></tr></thead><tbody>' +
+        lista.map(r => `<tr><td><div class="who" style="min-width:180px">${avatar(r.nome, r.email)}<div><b>${esc(r.nome)}</b></div></div></td>
+          <td><span class="chip ${COR_TIPO[r.tipo] || 'c-gray'}">${esc(r.tipo)}</span></td><td>${fmtData(r.inicio)}</td><td>${r.fim !== r.inicio ? fmtData(r.fim) : ''}</td>
+          <td style="white-space:nowrap">${esc(r.horario)}${r.horas != null ? ` <span class="chip c-info">${fmtH(r.horas)}h</span>` : ''}</td>
+          <td style="font-size:12px;color:var(--ink-2)">${esc(r.origem)}</td><td style="font-size:12px">${esc(r.titulo)}</td></tr>`).join('') + '</tbody>'
+        : '<tbody><tr><td class="empty"><b>Nenhuma ausência no período</b>Ajuste os filtros ou lance uma ausência manual.</td></tr></tbody>';
+    }
+    ['aDev', 'aTipo', 'aOrigem'].forEach(id => $(id).onchange = filtrarAusencias); $('aBusca').oninput = filtrarAusencias;
+
+    /* ======================= Cadastros ======================= */
+    const INFO_CAD = {
+      colaboradores: 'Time que é cobrado. <b>Apelidos</b>: como a pessoa aparece na agenda quando não é pelo nome (ex.: Carlão, Zé), separados por vírgula. <b>Cobrar = NÃO</b> tira da cobrança semanal automática (ex.: líder), mas ela continua no painel.',
+      ausencias: 'Ausências que não estão na agenda nem na planilha de férias. Sem horas = dia inteiro; com horas = abate só aquelas horas de cada dia do intervalo.',
+      feriados: 'Os feriados nacionais e de SP já são automáticos (lista abaixo). Cadastre aqui os municipais, emendas e pontos facultativos.'
+    };
+    async function carregarCadastro(nome) {
+      carregando('Carregando cadastro…');
+      try {
+        const r = await chamar('obterCadastroPainel', nome);
+        if (CAD.nome !== nome) return; // usuário trocou de cadastro enquanto carregava
+        CAD = Object.assign(CAD, { colunas: r.colunas, linhas: r.linhas.map((l, i) => Object.assign({ _id: 'r' + i }, l)), titulo: r.titulo });
+        CAD.original = JSON.stringify(CAD.linhas.map(limpaLinha)); CAD.carregado[nome] = true;
+        CAD.origPorId = {}; CAD.linhas.forEach(l => CAD.origPorId[l._id] = JSON.stringify(limpaLinha(l)));
+        $('cnt-' + nome).textContent = r.linhas.length;
+        renderCadastro();
+        if (nome === 'feriados' && !CFG) carregarConfig(true);
+      } catch (e) { toast(e.message, true); }
+      finally { pronto(); }
+    }
+    const limpaLinha = l => { const o = {}; CAD.colunas.forEach(c => o[c.key] = String(l[c.key] == null ? '' : l[c.key])); return o; };
+    function sujo() { return JSON.stringify(CAD.linhas.map(limpaLinha)) !== CAD.original; }
+
+    async function trocarCadastro(nome) {
+      if (nome === CAD.nome && CAD.carregado[nome]) return;
+      if (CAD.carregado[CAD.nome] && sujo() && !(await confirmar('Alterações não salvas', 'Descartar as alterações deste cadastro?', 'Descartar', 'btn-danger'))) return;
+      document.querySelectorAll('.subtab').forEach(b => b.classList.toggle('active', b.dataset.cad === nome));
+      CAD.nome = nome; CAD.carregado[nome] = false; carregarCadastro(nome);
+    }
+    $('subtabs').addEventListener('click', e => { const b = e.target.closest('.subtab'); if (b) trocarCadastro(b.dataset.cad); });
+
+    function renderCadastro() {
+      $('cadTitulo').textContent = CAD.titulo;
+      $('cadSub').textContent = `${CAD.linhas.length} linha(s) · aba "${{ colaboradores: 'DePara_Usuarios', ausencias: 'Ausencias', feriados: 'Feriados' }[CAD.nome]}" da planilha`;
+      $('cadBanner').innerHTML = `<div class="banner">ℹ️ <div>${INFO_CAD[CAD.nome]}</div></div>`;
+      $('cardFeriadosAuto').hidden = CAD.nome !== 'feriados';
+      const q = $('cadBusca').value.trim().toLowerCase();
+      const devs = (DADOS ? DADOS.devs : []).map(d => [d.email, d.nome]);
+      let h = '<thead><tr>' + CAD.colunas.map(c => `<th>${esc(c.label)}${c.obrig ? ' *' : ''}</th>`).join('') + '<th></th></tr></thead><tbody>';
+      CAD.linhas.forEach((l, i) => {
+        if (q && !CAD.colunas.some(c => String(l[c.key] || '').toLowerCase().includes(q))) return;
+        const cls = l._novo ? 'novo' : (JSON.stringify(limpaLinha(l)) !== CAD.origPorId[l._id] ? 'changed' : '');
+        h += `<tr class="${cls}">` + CAD.colunas.map(c => {
+          const v = esc(l[c.key] || ''), a = `data-i="${i}" data-k="${c.key}"`;
+          if (c.opcoes) return `<td><select class="cell-inp ${l[c.key] === 'NÃO' ? 'sel-nao' : 'sel-sim'}" ${a}>${c.opcoes.map(o => `<option ${o === l[c.key] ? 'selected' : ''}>${o}</option>`).join('')}</select></td>`;
+          if (c.data) return `<td><input type="date" class="cell-inp" ${a} value="${v}"></td>`;
+          if (c.num) return `<td><input type="number" step="0.25" min="0" class="cell-inp" ${a} value="${v}" style="max-width:110px"></td>`;
+          if (c.key === 'identificador') return `<td><input class="cell-inp" list="dlDevs" ${a} value="${v}" placeholder="e-mail ou nome"></td>`;
+          return `<td><input class="cell-inp" ${a} value="${v}"></td>`;
+        }).join('') + `<td><button class="icon-btn del" data-del="${i}" title="Excluir linha">🗑</button></td></tr>`;
+      });
+      h += '</tbody>';
+      $('cadTabela').innerHTML = h + `<datalist id="dlDevs">${devs.map(d => `<option value="${esc(d[0])}">${esc(d[1])}</option>`).join('')}</datalist>`;
+      const s = sujo(); $('cadStatus').textContent = s ? '● Alterações não salvas' : 'Sem alterações'; $('cadStatus').className = 'ctl-status' + (s ? ' dirty' : '');
+    }
+    $('cadTabela').addEventListener('input', e => {
+      const el = e.target; if (el.dataset.i == null) return;
+      CAD.linhas[+el.dataset.i][el.dataset.k] = el.value;
+      if (el.tagName === 'SELECT') el.className = 'cell-inp ' + (el.value === 'NÃO' ? 'sel-nao' : 'sel-sim');
+      const lin = CAD.linhas[+el.dataset.i];
+      el.closest('tr').className = lin._novo ? 'novo' : (JSON.stringify(limpaLinha(lin)) !== CAD.origPorId[lin._id] ? 'changed' : '');
+      const s = sujo(); $('cadStatus').textContent = s ? '● Alterações não salvas' : 'Sem alterações'; $('cadStatus').className = 'ctl-status' + (s ? ' dirty' : '');
+    });
+    $('cadTabela').addEventListener('click', e => { const b = e.target.closest('[data-del]'); if (b) { CAD.linhas.splice(+b.dataset.del, 1); renderCadastro(); } });
+    $('cadBusca').oninput = renderCadastro;
+    $('btnAddLinha').onclick = () => {
+      const l = { _id: 'n' + Date.now(), _novo: true }; CAD.colunas.forEach(c => l[c.key] = c.opcoes ? c.opcoes[0] : '');
+      CAD.linhas.unshift(l);
+      $('cadBusca').value = ''; renderCadastro();
+      const primeiro = $('cadTabela').querySelector('tbody tr input, tbody tr select'); if (primeiro) primeiro.focus();
+    };
+    $('btnDescartar').onclick = () => { CAD.carregado[CAD.nome] = false; carregarCadastro(CAD.nome); };
+    $('btnSalvarCad').onclick = async () => {
+      carregando('Salvando na planilha…');
+      try {
+        const r = await chamar('salvarCadastroPainel', CAD.nome, CAD.linhas.map(limpaLinha));
+        pronto(); toast(r.mensagem);
+        CAD.carregado[CAD.nome] = false; await carregarCadastro(CAD.nome);
+        carregar(false);
+      } catch (e) { pronto(); toast(e.message, true); }
+    };
+
+    /* ======================= Configurações ======================= */
+    async function carregarConfig(silencioso) {
+      if (!silencioso) carregando('Carregando configurações…');
+      try {
+        const r = await chamar('obterConfigPainel'); CFG = r.config;
+        $('cUrl').value = CFG.jiraBaseUrl || ''; $('cTeam').value = CFG.teamId || ''; $('cToken').value = '';
+        $('cTokenHint').textContent = CFG.tokenConfigurado ? `Token configurado (termina em …${CFG.tokenFinal}). Preencha só para trocar.` : '⚠️ Nenhum token configurado.';
+        $('cHora').value = CFG.horaMinima; $('cLider').value = CFG.emailLider || '';
+        $('cAuto').checked = !!CFG.periodoAuto; $('cMesDe').value = CFG.mesDe || ''; $('cMesAte').value = CFG.mesAte || '';
+        $('cFerias').value = CFG.urlFerias || ''; $('cAgenda').value = CFG.urlAgenda || '';
+        $('cWebApp').value = CTX.urlWebApp || '(publique como Web App para ter o link)';
+        alternarMeses(); renderRotinas(r.rotinas);
+        $('feriadosAuto').innerHTML = (r.feriadosAuto || []).map(f => `<span class="chip c-gray" title="${esc(f.descricao)}">${fmtData(f.data)} · ${esc(f.descricao)}</span>`).join('');
+      } catch (e) { toast(e.message, true); }
+      finally { if (!silencioso) pronto(); }
+    }
+    function alternarMeses() { ['cMesDe', 'cMesAte'].forEach(id => $(id).disabled = $('cAuto').checked); }
+    $('cAuto').onchange = alternarMeses;
+    function renderRotinas(rot) {
+      const ativas = (rot || []).filter(r => r.gatilhos > 0);
+      $('rotStatus').className = 'chip ' + (ativas.length ? 'c-ok' : 'c-bad'); $('rotStatus').textContent = ativas.length ? '● Ativas' : '● Desativadas';
+      $('rotLista').innerHTML = (rot || []).map(r => `<div class="list-item"><div>${esc(r.nome)}<small>${esc(r.funcao)}</small></div><span class="chip ${r.gatilhos ? 'c-ok' : 'c-gray'}">${r.gatilhos ? r.gatilhos + ' gatilho(s)' : 'inativa'}</span></div>`).join('');
+    }
+    $('btnSalvarCfg').onclick = async () => {
+      carregando('Salvando configurações…');
+      try {
+        const r = await chamar('salvarConfigPainel', { jiraBaseUrl: $('cUrl').value, teamId: $('cTeam').value, jiraToken: $('cToken').value,
+          horaMinima: $('cHora').value, emailLider: $('cLider').value, periodoAuto: $('cAuto').checked, mesDe: $('cMesDe').value, mesAte: $('cMesAte').value,
+          urlFerias: $('cFerias').value, urlAgenda: $('cAgenda').value });
+        toast(r.mensagem); CFG = null; await carregarConfig(true);
+        periodo = { mesDe: '', mesAte: '' }; carregar(true);
+      } catch (e) { pronto(); toast(e.message, true); }
+    };
+    $('btnTestarCfg').onclick = async () => {
+      carregando('Testando Tempo, férias e agenda…');
+      try { const r = await chamar('testarConexoesPainel'); toast(r.mensagem, !r.ok); } catch (e) { toast(e.message, true); } finally { pronto(); }
+    };
+    document.querySelectorAll('[data-acao]').forEach(b => b.onclick = async () => {
+      if (b.dataset.confirma && !(await confirmar('Confirmar', esc(b.dataset.confirma), 'Confirmar', b.dataset.acao === 'alertaSemanal' ? 'btn-send' : 'btn-danger'))) return;
+      carregando('Executando…');
+      try {
+        const r = await chamar('executarAcaoPainel', b.dataset.acao);
+        toast(r.mensagem); if (r.rotinas) renderRotinas(r.rotinas);
+        if (b.dataset.acao === 'limparCache' || b.dataset.acao === 'alertaSemanal') carregar(b.dataset.acao === 'limparCache');
+      } catch (e) { toast(e.message, true); } finally { pronto(); }
+    });
+    $('btnAbrirPlanilha').onclick = () => { if (CTX.urlPlanilha) window.open(CTX.urlPlanilha, '_blank'); else toast('Planilha ainda não carregada.', true); };
+    $('cWebApp').onclick = () => { $('cWebApp').select(); try { navigator.clipboard.writeText($('cWebApp').value); toast('Link copiado.'); } catch (e) {} };
+
+    /* ======================= Início ======================= */
+    (function iniciar() {
+      let v = 'dash'; try { v = localStorage.getItem('ts_view') || 'dash'; } catch (e) {}
+      if (v === 'cadastros' || v === 'config') v = 'dash';
+      irPara(v);
+      carregar(false);
+    })();
+  </script>
+</body>
+</html>

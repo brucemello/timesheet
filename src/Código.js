@@ -13,7 +13,10 @@ const CHAVES_CONFIG = {
   HORA_MINIMA: 'CONFIG_HORA_MINIMA',
   EMAIL_LIDER: 'CONFIG_EMAIL_LIDER',
   MES_DE: 'CONFIG_MES_DE',
-  MES_ATE: 'CONFIG_MES_ATE'
+  MES_ATE: 'CONFIG_MES_ATE',
+  PERIODO_AUTO: 'CONFIG_PERIODO_AUTO',
+  URL_FERIAS: 'CONFIG_URL_FERIAS',
+  URL_AGENDA: 'CONFIG_URL_AGENDA'
 };
 
 /********************************************************************************
@@ -21,110 +24,58 @@ const CHAVES_CONFIG = {
  ********************************************************************************/
 function onOpen(e) {
   const ui = SpreadsheetApp.getUi();
-  
+
   ui.createMenu('⚙️ Painel Tempo API')
-    .addItem('🚀 Abrir Dashboard Executivo', 'abrirPainelLateral')
+    .addItem('🚀 Abrir Painel de Controle', 'abrirPainelLateral')
     .addSeparator()
     .addItem('📊 Extrair e Salvar na Planilha', 'extrairEGravarNaPlanilha')
-    .addItem('📧 Disparar Relatório Diário 17h (Manual)', 'executarRelatorioDiario17h')
+    .addItem('📧 Disparar Relatório Diário (Manual)', 'executarRelatorioDiario17h')
     .addItem('🚀 Executar Alertas Semanal Devs (Manual)', 'executarDisparoSemanalOficial')
     .addItem('👤 Gerar/Verificar Aba DePara_Usuarios', 'criarAbaDeParaManualmente')
     .addItem('🏖️ Conferir Ausências e Férias Lidas', 'testarIntegracaoAusenciasEAgenda')
     .addItem('⏰ Reconfigurar Gatilhos Automáticos', 'configurarGatilhosAutomaticos')
     .addToUi();
 
-  abrirPainelLateral();
-}
-
-/**
- * Abre o Dashboard Executivo Centralizado (Janela Modal)
- */
-function abrirPainelLateral() {
-  const html = HtmlService.createHtmlOutputFromFile('Interface')
-      .setTitle('Dashboard Agente Jira IA - Controle Executivo')
-      .setWidth(1020)
-      .setHeight(680);
-  SpreadsheetApp.getUi().showModalDialog(html, 'Dashboard Agente Jira IA - Controle Executivo');
+  try { obterPlanilha_(); } catch (err) { /* memoriza o ID para o Web App */ }
 }
 
 /********************************************************************************
- * GESTÃO DE CONFIGURAÇÕES E INTEGRAÇÃO COM INTERFACE
+ * CONFIGURAÇÕES (Script Properties)
  ********************************************************************************/
 function obterConfiguracoesAtuais() {
   const props = PropertiesService.getScriptProperties();
   const hoje = new Date();
-  const anoAtual = hoje.getFullYear();
-  const mesAtual = String(hoje.getMonth() + 1).padStart(2, '0');
-  const mesPadrao = `${anoAtual}-${mesAtual}`;
+  const mesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+  // Período automático (padrão): sempre o mês corrente. Desligado: usa os meses fixos salvos.
+  const periodoAuto = props.getProperty(CHAVES_CONFIG.PERIODO_AUTO) !== 'NAO';
+  const mesDe = periodoAuto ? mesAtual : (props.getProperty(CHAVES_CONFIG.MES_DE) || mesAtual);
+  const mesAte = periodoAuto ? mesAtual : (props.getProperty(CHAVES_CONFIG.MES_ATE) || mesAtual);
+  let emailPadrao = '';
+  try { emailPadrao = Session.getActiveUser().getEmail(); } catch (e) { emailPadrao = ''; }
 
   return {
     jiraBaseUrl: props.getProperty(CHAVES_CONFIG.JIRA_BASE_URL) || 'https://jira.totvs.com.br',
     teamId: props.getProperty(CHAVES_CONFIG.TEAM_ID) || '644',
     jiraToken: props.getProperty(CHAVES_CONFIG.JIRA_TOKEN) || '',
     horaMinima: props.getProperty(CHAVES_CONFIG.HORA_MINIMA) || '6',
-    emailLider: props.getProperty(CHAVES_CONFIG.EMAIL_LIDER) || Session.getActiveUser().getEmail(),
-    mesDe: props.getProperty(CHAVES_CONFIG.MES_DE) || mesPadrao,
-    mesAte: props.getProperty(CHAVES_CONFIG.MES_ATE) || mesPadrao
+    emailLider: props.getProperty(CHAVES_CONFIG.EMAIL_LIDER) || emailPadrao,
+    periodoAuto: periodoAuto,
+    mesDe: mesDe <= mesAte ? mesDe : mesAte,
+    mesAte: mesDe <= mesAte ? mesAte : mesDe,
+    urlFerias: props.getProperty(CHAVES_CONFIG.URL_FERIAS) || URL_PLANILHA_FERIAS,
+    urlAgenda: props.getProperty(CHAVES_CONFIG.URL_AGENDA) || URL_PLANILHA_AGENDA_AUSENCIAS
   };
-}
-
-function salvarConfiguracoesPelaInterface(config) {
-  try {
-    if (!config.jiraBaseUrl || !config.teamId || !config.jiraToken) {
-      throw new Error('Preencha os campos obrigatórios: URL do Jira, Team ID e Token API.');
-    }
-
-    const props = PropertiesService.getScriptProperties();
-    props.setProperty(CHAVES_CONFIG.JIRA_BASE_URL, config.jiraBaseUrl.trim().replace(/\/$/, ''));
-    props.setProperty(CHAVES_CONFIG.TEAM_ID, String(config.teamId).trim());
-    props.setProperty(CHAVES_CONFIG.JIRA_TOKEN, config.jiraToken.trim());
-    props.setProperty(CHAVES_CONFIG.HORA_MINIMA, String(config.horaMinima || 6).trim());
-    props.setProperty(CHAVES_CONFIG.EMAIL_LIDER, config.emailLider.trim().toLowerCase());
-    props.setProperty(CHAVES_CONFIG.MES_DE, config.mesDe);
-    props.setProperty(CHAVES_CONFIG.MES_ATE, config.mesAte);
-
-    configurarGatilhosAutomaticos();
-
-    return { sucesso: true, mensagem: 'Configurações e gatilhos automáticos salvos com sucesso!' };
-  } catch (erro) {
-    return { sucesso: false, mensagem: 'Erro ao salvar: ' + erro.message };
-  }
-}
-
-function executarFuncaoPeloPainel(nomeFuncao) {
-  try {
-    if (nomeFuncao === 'extrairEGravarNaPlanilha') {
-      const res = extrairEGravarNaPlanilha();
-      const textoMsg = (typeof res === 'object' && res.mensagem) ? res.mensagem : res;
-      return { sucesso: true, mensagem: textoMsg };
-    } 
-    else if (nomeFuncao === 'executarVerificacaoEAlertaSemanais' || nomeFuncao === 'executarDisparoSemanalOficial') {
-      const res = executarDisparoSemanalOficial();
-      return { sucesso: true, mensagem: res };
-    } 
-    else if (nomeFuncao === 'executarRelatorioDiario17h') {
-      const res = executarRelatorioDiario17h();
-      return { sucesso: true, mensagem: res };
-    }
-    else if (nomeFuncao === 'testarEnvioApenasParaLider') {
-      const res = executarVerificacaoEAlertaSemanais(true);
-      return { sucesso: true, mensagem: res };
-    }
-    
-    throw new Error(`A função '${nomeFuncao}' não está mapeada.`);
-  } catch (erro) {
-    return { sucesso: false, mensagem: erro.toString() };
-  }
 }
 
 /********************************************************************************
  * MAPA DE-PARA DE USUÁRIOS
  ********************************************************************************/
 function criarAbaDeParaManualmente() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  carregarMapaUsuarios_(ss);
+  carregarMapaUsuarios_(obterPlanilha_());
   SpreadsheetApp.getUi().alert('Aba "DePara_Usuarios" criada/verificada com sucesso!');
 }
+
+const CABECALHO_DEPARA = ['ID Jira (Username / AccountId)', 'Nome Real do Colaborador', 'E-mail Corporativo', 'Apelidos (agenda)', 'Cobrar (SIM/NÃO)'];
 
 function carregarMapaUsuarios_(ss) {
   const mapa = {};
@@ -132,250 +83,87 @@ function carregarMapaUsuarios_(ss) {
 
   if (!aba) {
     aba = ss.insertSheet('DePara_Usuarios');
-    const dadosModelo = [
-      ['ID Jira (Username / AccountId)', 'Nome Real do Colaborador', 'E-mail Corporativo'],
-      ['jirauser102776', 'Yasmim Lira Castro', 'yasmim.castro@totvs.com.br'],
-      ['jirauser103914', 'Eduardo Nunes Cirqueira', 'eduardo.cirqueira@totvs.com.br'],
-      ['jirauser103915', 'Keilla Silva de Freitas', 'keilla.freitas@totvs.com.br'],
-      ['jirauser104037', 'William Palma Alves', 'william.alves@totvs.com.br'],
-      ['jirauser104319', 'Caique Henrique Carlos', 'caique.carlos@totvs.com.br'],
-      ['jirauser82702', 'Evandro Italo Silva Peixoto', 'evandro.peixoto@totvs.com.br']
-    ];
-
-    aba.getRange(1, 1, dadosModelo.length, dadosModelo[0].length).setValues(dadosModelo);
-    aba.getRange(1, 1, 1, 3)
-      .setBackground('#16213e')
-      .setFontColor('#ffffff')
-      .setFontWeight('bold');
-    aba.autoResizeColumns(1, 3);
+    aba.getRange(1, 1, 1, CABECALHO_DEPARA.length).setValues([CABECALHO_DEPARA]);
   }
+  // Garante as colunas novas (Apelidos / Cobrar) sem mexer nos dados
+  try {
+    const cab = aba.getRange(1, 1, 1, CABECALHO_DEPARA.length).getValues()[0];
+    CABECALHO_DEPARA.forEach((t, i) => { if (!String(cab[i] || '').trim()) aba.getRange(1, i + 1).setValue(t); });
+    aba.getRange(1, 1, 1, CABECALHO_DEPARA.length).setBackground('#16213e').setFontColor('#ffffff').setFontWeight('bold');
+  } catch (e) { /* sem permissão de edição */ }
 
   if (aba.getLastRow() <= 1) return mapa;
 
-  const dados = aba.getRange(2, 1, aba.getLastRow() - 1, 3).getValues();
+  const dados = aba.getRange(2, 1, aba.getLastRow() - 1, CABECALHO_DEPARA.length).getValues();
   dados.forEach(linha => {
     const idJira = String(linha[0] || '').trim().toLowerCase();
     const nomeReal = String(linha[1] || '').trim();
     const emailReal = String(linha[2] || '').trim().toLowerCase();
+    const cobrar = String(linha[4] || '').trim().toUpperCase().replace('Ã', 'A') !== 'NAO';
 
-    const infoObj = { nome: nomeReal, email: emailReal };
+    const infoObj = { nome: nomeReal, email: emailReal, cobrar: cobrar, idJira: idJira };
 
     if (idJira) mapa[idJira] = infoObj;
     if (emailReal) {
       mapa[emailReal] = infoObj;
-      const prefixoEmail = emailReal.split('@')[0];
-      mapa[prefixoEmail] = infoObj;
+      mapa[emailReal.split('@')[0]] = infoObj;
     }
   });
 
   return mapa;
 }
 
-/* Ausências, férias, folgas e feriados: ver Ausencias.js */
+/* Ausências, férias, folgas e feriados: ver Ausencias.js | Cálculo do período: ver Apuracao.js */
 
 /********************************************************************************
  * EXTRAÇÃO E SALVAMENTO COM TRATAMENTO DE AUSÊNCIAS (FÉRIAS + AUDITORIA DE AGENDA)
  ********************************************************************************/
-function extrairEGravarNaPlanilha() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const mapaUsuarios = carregarMapaUsuarios_(ss);
-  const feriados = carregarFeriados_(ss);
+function extrairEGravarNaPlanilha(opcoes) {
+  const apur = apurarPeriodo_(opcoes || {});
+  const ss = obterPlanilha_();
+  const horaMinimaNum = apur.horaMinima;
 
-  const cfg = obterConfiguracoesAtuais();
-  if (!cfg.jiraToken) throw new Error('Token da API não configurado no Painel.');
-
-  const periodo = calcularDatasDoPeriodo_(cfg.mesDe, cfg.mesAte);
-  const worklogs = buscarWorklogsTempoAPI_(periodo.dataDeIso, periodo.dataAteIso, cfg);
-
-  const horaMinimaNum = parseFloat(cfg.horaMinima) || 6;
-  const horasPorDevDia = {};
-  const infoDevs = {};
-
-  Object.keys(mapaUsuarios).forEach(chave => {
-    const item = mapaUsuarios[chave];
-    if (item.email && item.nome) {
-      infoDevs[item.email.toLowerCase()] = item.nome;
-    }
-  });
-
-  if (worklogs && worklogs.length > 0) {
-    worklogs.forEach(wl => {
-      const info = extrairIdentificadoresColaborador_(wl);
-      const chaveUsername = String(info.username || '').trim().toLowerCase();
-      const chaveAccountId = String(info.accountId || '').trim().toLowerCase();
-      const chaveEmail = String(info.email || '').trim().toLowerCase();
-      const chaveNome = String(info.nome || '').trim().toLowerCase();
-
-      const deParaEncontrado = mapaUsuarios[chaveUsername] || 
-                               mapaUsuarios[chaveAccountId] || 
-                               mapaUsuarios[chaveEmail] || 
-                               mapaUsuarios[chaveEmail.split('@')[0]] ||
-                               mapaUsuarios[chaveNome];
-
-      let nomeFinal = (deParaEncontrado && deParaEncontrado.nome) ? deParaEncontrado.nome : (info.nome || info.email);
-      let emailFinal = (deParaEncontrado && deParaEncontrado.email) ? deParaEncontrado.email : info.email;
-
-      if (!emailFinal) emailFinal = chaveUsername || chaveAccountId || 'usuario.desconhecido';
-      if (emailFinal && !emailFinal.includes('@')) emailFinal += '@totvs.com.br';
-      emailFinal = emailFinal.toLowerCase();
-
-      if (!nomeFinal || nomeFinal.includes('@')) {
-        nomeFinal = (deParaEncontrado && deParaEncontrado.nome) ? deParaEncontrado.nome : emailFinal;
-      }
-
-      const dataWl = (wl.started || wl.dateStarted || '').substring(0, 10);
-      const horas = (wl.timeSpentSeconds || 0) / 3600;
-
-      if (dataWl && emailFinal) {
-        const chaveAgrupamento = `${emailFinal}|${dataWl}`;
-        horasPorDevDia[chaveAgrupamento] = (horasPorDevDia[chaveAgrupamento] || 0) + horas;
-        infoDevs[emailFinal] = nomeFinal;
-      }
-    });
-  }
-
-  const hojeIso = formatarDataISO_(new Date());
-  const diasUteis = [];
-  let cursor = new Date(periodo.inicio);
-  while (cursor <= periodo.fim) {
-    const iso = formatarDataISO_(cursor);
-    if (cursor.getDay() !== 0 && cursor.getDay() !== 6 && !feriados.has(iso)) {
-      diasUteis.push(iso);
-    }
-    cursor.setDate(cursor.getDate() + 1);
-  }
-
-  const listaEmailsOrdenados = Object.keys(infoDevs).sort((a, b) => {
-    const nomeA = infoDevs[a] || a;
-    const nomeB = infoDevs[b] || b;
-    return nomeA.localeCompare(nomeB);
-  });
-
-  const ausencias = carregarAusencias_(ss, listaEmailsOrdenados.map(e => ({ email: e, nome: infoDevs[e] || e })));
-
+  const rotuloStatus = { OK: 'OK', PEND: 'PENDENTE', AUS: 'FÉRIAS / AUSÊNCIA', FER: 'FERIADO', HOJE: 'EM ANDAMENTO' };
   const registrosProcessados = [];
   const resumoConsolidadoDevs = [];
   const pendenciasDetalhadas = [];
-  const matrizAuditoria = [
-    ['Data', 'Dev / Analista', 'E-mail', 'Tipo Ausência', 'Título / Motivo Evento', 'Horário Registrado', 'Abatimento / Horas', 'Origem']
-  ];
+  const matrizExtracao = [['Data', 'Dev / Analista', 'E-mail', 'Total Horas no Dia', `Status (Mín. ${horaMinimaNum}h)`, 'Meta do Dia', 'Ausência Considerada']];
+  const matrizAuditoria = [['Data', 'Dev / Analista', 'E-mail', 'Tipo Ausência', 'Título / Motivo Evento', 'Horário Registrado', 'Abatimento / Horas', 'Origem']];
 
-  const matrizExtracao = [
-    ['Data', 'Dev / Analista', 'E-mail', 'Total Horas no Dia', `Status (Mín. ${horaMinimaNum}h)`, 'Meta do Dia', 'Ausência Considerada']
-  ];
-
-  listaEmailsOrdenados.forEach(email => {
-    let nome = infoDevs[email] || email;
-    if (mapaUsuarios[email] && mapaUsuarios[email].nome) {
-      nome = mapaUsuarios[email].nome;
-    }
-
-    let totalHorasApontadasDev = 0;
-    let diasFeriasDev = 0;
-    let totalHorasAusenciaAbatidas = 0;
-    let horasEsperadasDevTotal = 0;
-
-    diasUteis.forEach(dataIso => {
-      const dataObj = lerDataAus_(dataIso);
-      const avaliacao = avaliarStatusEAusenciaDev_(email, nome, dataObj, ausencias, horaMinimaNum);
-      const ehHoje = dataIso >= hojeIso; // dia em andamento: mostra, mas não cobra
-
-      const chaveAgrupamento = `${email}|${dataIso}`;
-      const totalHorasDia = horasPorDevDia[chaveAgrupamento] || 0;
-      totalHorasApontadasDev += totalHorasDia;
-      if (!ehHoje) totalHorasAusenciaAbatidas += avaliacao.horasAbatidas;
-
-      // Alimenta dados para a aba de Auditoria
-      if (avaliacao.eventosAuditoria && avaliacao.eventosAuditoria.length > 0) {
-        avaliacao.eventosAuditoria.forEach(evt => {
-          matrizAuditoria.push([
-            formatarDataBR_(dataObj),
-            nome,
-            email,
-            evt.tipo,
-            evt.titulo,
-            evt.horarioTexto,
-            evt.eDiaInteiro ? 'Dia Inteiro' : Number(evt.horasAbatimento.toFixed(2)),
-            evt.origem || ''
-          ]);
-        });
-      }
-
-      let status = 'PENDENTE';
-
-      if (avaliacao.eDiaInteiro) {
-        status = 'FÉRIAS / AUSÊNCIA';
-        if (!ehHoje) diasFeriasDev++;
-      } else if (ehHoje) {
-        status = totalHorasDia >= avaliacao.cargaEsperadaNoDia ? 'OK' : 'EM ANDAMENTO';
-      } else {
-        horasEsperadasDevTotal += avaliacao.cargaEsperadaNoDia;
-        if (totalHorasDia >= avaliacao.cargaEsperadaNoDia) {
-          status = 'OK';
-        }
-      }
-
-      matrizExtracao.push([dataIso, nome, email, Number(totalHorasDia.toFixed(2)), status,
-        avaliacao.cargaEsperadaNoDia, descreverAusenciaDia_(avaliacao)]);
-      registrosProcessados.push({ 
-        dataIso: dataIso, 
-        dataBr: formatarDataBR_(dataObj), 
-        nome: nome, 
-        email: email, 
-        horas: totalHorasDia, 
-        status: status 
-      });
-
-      if (status === 'PENDENTE') {
-        pendenciasDetalhadas.push([dataIso, nome, email, Number(totalHorasDia.toFixed(2)), 'PENDENTE', avaliacao.cargaEsperadaNoDia, descreverAusenciaDia_(avaliacao)]);
-      }
+  apur.devs.forEach(dev => {
+    dev.dias.forEach((x, i) => {
+      const dia = apur.dias[i];
+      const status = rotuloStatus[x.s] || x.s;
+      matrizExtracao.push([dia.iso, dev.nome, dev.email, x.h, status, x.m, x.a || '']);
+      registrosProcessados.push({ dataIso: dia.iso, dataBr: dia.br, nome: dev.nome, email: dev.email, horas: x.h, status: status });
+      if (x.s === 'PEND') pendenciasDetalhadas.push([dia.iso, dev.nome, dev.email, x.h, 'PENDENTE', x.m, x.a || '']);
     });
-
-    const saldoHorasDev = totalHorasApontadasDev - horasEsperadasDevTotal;
-
+    const t = dev.totais;
     resumoConsolidadoDevs.push({
-      nome: nome,
-      email: email,
-      diasUteisMeta: diasUteis.filter(d => d < hojeIso).length,
-      diasFerias: diasFeriasDev,
-      horasAusencia: Number(totalHorasAusenciaAbatidas.toFixed(2)),
-      horasEsperadas: Number(horasEsperadasDevTotal.toFixed(2)),
-      horasApontadas: Number(totalHorasApontadasDev.toFixed(2)),
-      saldoHoras: Number(saldoHorasDev.toFixed(2)),
-      statusGeral: saldoHorasDev >= 0 ? 'OK' : 'PENDENTE'
+      nome: dev.nome, email: dev.email, diasUteisMeta: t.diasUteis, diasFerias: t.diasAusencia,
+      horasAusencia: t.horasAusencia, horasEsperadas: t.esperadas, horasApontadas: t.apontadas,
+      saldoHoras: t.saldo, statusGeral: t.saldo >= 0 && t.diasPendentes === 0 ? 'OK' : 'PENDENTE'
     });
+  });
+
+  apur.ausencias.registros.forEach(r => {
+    matrizAuditoria.push([r.inicio === r.fim ? r.inicio : `${r.inicio} a ${r.fim}`, r.nome, r.email, r.tipo, r.titulo, r.horario,
+      r.horas == null ? 'Dia Inteiro' : r.horas, r.origem]);
   });
 
   // ABA 1: Resumo_Mensal_Devs
-  let abaResumo = ss.getSheetByName('Resumo_Mensal_Devs');
-  if (!abaResumo) {
-    abaResumo = ss.insertSheet('Resumo_Mensal_Devs');
-  } else {
-    abaResumo.clear();
-  }
-  
   const matrizResumo = [['Dev / Analista', 'E-mail', 'Dias Úteis (Até Ontem)', 'Dias Férias/Ausência', 'Horas Ausência (Abatidas)', 'Horas Esperadas', 'Horas Apontadas', 'Saldo (Horas)', 'Status Geral']];
-  resumoConsolidadoDevs.forEach(d => {
-    matrizResumo.push([d.nome, d.email, d.diasUteisMeta, d.diasFerias, d.horasAusencia, d.horasEsperadas, d.horasApontadas, d.saldoHoras, d.statusGeral]);
-  });
-
+  resumoConsolidadoDevs.forEach(d => matrizResumo.push([d.nome, d.email, d.diasUteisMeta, d.diasFerias, d.horasAusencia, d.horasEsperadas, d.horasApontadas, d.saldoHoras, d.statusGeral]));
+  const abaResumo = prepararAba_(ss, 'Resumo_Mensal_Devs');
   abaResumo.getRange(1, 1, matrizResumo.length, matrizResumo[0].length).setValues(matrizResumo);
   estilizarCabecalho_(abaResumo, 1, matrizResumo[0].length, '#16213e');
-  abaResumo.getRange(2, 5, matrizResumo.length - 1, 4).setNumberFormat('0.00"h"');
+  if (matrizResumo.length > 1) abaResumo.getRange(2, 5, matrizResumo.length - 1, 4).setNumberFormat('0.00"h"');
   aplicarCoresStatusGeral_(abaResumo, matrizResumo.length);
   abaResumo.autoResizeColumns(1, matrizResumo[0].length);
 
   // ABA 2: Horas_Pendentes
-  let abaPendentes = ss.getSheetByName('Horas_Pendentes');
-  if (!abaPendentes) {
-    abaPendentes = ss.insertSheet('Horas_Pendentes');
-  } else {
-    abaPendentes.clear();
-  }
-
-  const matrizPendentes = [['Data', 'Dev / Analista', 'E-mail', 'Total Horas no Dia', 'Status', 'Meta do Dia', 'Ausência Considerada']];
-  pendenciasDetalhadas.forEach(p => matrizPendentes.push(p));
-
+  const matrizPendentes = [['Data', 'Dev / Analista', 'E-mail', 'Total Horas no Dia', 'Status', 'Meta do Dia', 'Ausência Considerada']].concat(pendenciasDetalhadas);
+  const abaPendentes = prepararAba_(ss, 'Horas_Pendentes');
   abaPendentes.getRange(1, 1, matrizPendentes.length, matrizPendentes[0].length).setValues(matrizPendentes);
   estilizarCabecalho_(abaPendentes, 1, matrizPendentes[0].length, '#c5221f');
   if (matrizPendentes.length > 1) {
@@ -385,43 +173,35 @@ function extrairEGravarNaPlanilha() {
   abaPendentes.autoResizeColumns(1, matrizPendentes[0].length);
 
   // ABA 3: Auditoria_Ausencias
-  let abaAuditoria = ss.getSheetByName('Auditoria_Ausencias');
-  if (!abaAuditoria) {
-    abaAuditoria = ss.insertSheet('Auditoria_Ausencias');
-  } else {
-    abaAuditoria.clear();
-  }
-
+  const abaAuditoria = prepararAba_(ss, 'Auditoria_Ausencias');
   abaAuditoria.getRange(1, 1, matrizAuditoria.length, matrizAuditoria[0].length).setValues(matrizAuditoria);
   estilizarCabecalho_(abaAuditoria, 1, matrizAuditoria[0].length, '#e65100');
-  if (matrizAuditoria.length > 1) {
-    abaAuditoria.getRange(2, 7, matrizAuditoria.length - 1, 1).setNumberFormat('0.00"h"');
-  }
   abaAuditoria.autoResizeColumns(1, matrizAuditoria[0].length);
 
-  // ABA 4: Extracao_Tempo (Bruto)
-  let abaExtracao = ss.getSheetByName('Extracao_Tempo');
-  if (!abaExtracao) {
-    abaExtracao = ss.insertSheet('Extracao_Tempo');
-  } else {
-    abaExtracao.clear();
-  }
-
+  // ABA 4: Extracao_Tempo
+  const abaExtracao = prepararAba_(ss, 'Extracao_Tempo');
   abaExtracao.getRange(1, 1, matrizExtracao.length, matrizExtracao[0].length).setValues(matrizExtracao);
   estilizarCabecalho_(abaExtracao, 1, matrizExtracao[0].length, '#1a73e8');
-  abaExtracao.getRange(2, 4, matrizExtracao.length - 1, 1).setNumberFormat('0.00"h"');
+  if (matrizExtracao.length > 1) abaExtracao.getRange(2, 4, matrizExtracao.length - 1, 1).setNumberFormat('0.00"h"');
   aplicarCoresStatusDiario_(abaExtracao, matrizExtracao.length);
   abaExtracao.autoResizeColumns(1, matrizExtracao[0].length);
 
+  const aus = apur.ausencias;
   return {
     mensagem: `Sucesso! Abas 'Resumo_Mensal_Devs', 'Horas_Pendentes', 'Auditoria_Ausencias' e 'Extracao_Tempo' geradas com sucesso. ` +
-      `${ausencias.registros.length} ausência(s)/férias consideradas.` +
-      (ausencias.naoVinculados.length ? ` Sem colaborador identificado (cadastre o apelido na coluna D da DePara_Usuarios): ${ausencias.naoVinculados.join(', ')}.` : '') +
-      (ausencias.avisos.length ? ` Avisos: ${ausencias.avisos.join(' | ')}` : ''),
+      `${aus.registros.length} ausência(s)/férias consideradas.` +
+      (aus.naoVinculados.length ? ` Sem colaborador identificado (cadastre o apelido no painel > Cadastros > Colaboradores): ${aus.naoVinculados.join(', ')}.` : '') +
+      (aus.avisos.length ? ` Avisos: ${aus.avisos.join(' | ')}` : ''),
     registros: registrosProcessados,
     resumoDevs: resumoConsolidadoDevs,
-    periodoIso: `${periodo.dataDeIso} a ${periodo.dataAteIso}`
+    periodoIso: `${apur.periodo.de} a ${apur.periodo.ate}`
   };
+}
+
+function prepararAba_(ss, nome) {
+  const aba = ss.getSheetByName(nome) || ss.insertSheet(nome);
+  aba.clear();
+  return aba;
 }
 
 function estilizarCabecalho_(aba, numLinhas, numColunas, corFundo) {
@@ -677,34 +457,20 @@ function executarDisparoSemanalOficial() {
 
 function executarVerificacaoEAlertaSemanais(somenteLider = false) {
   const cfg = obterConfiguracoesAtuais();
-  if (!cfg.jiraToken) throw new Error('Token da API não configurado.');
-
-  const periodo = calcularDatasDoPeriodo_(cfg.mesDe, cfg.mesAte);
-  const worklogs = buscarWorklogsTempoAPI_(periodo.dataDeIso, periodo.dataAteIso, cfg);
-  const pendenciasPorDev = calcularPendenciasDevs_(worklogs, periodo.inicio, periodo.fim, cfg);
+  const apur = apurarPeriodo_({});
+  const pendenciasPorDev = pendenciasDaApuracao_(apur).filter(d => d.cobrar);
 
   if (pendenciasPorDev.length === 0) return 'Excelente! Nenhuma pendência de horas encontrada para o time.';
 
-  pendenciasPorDev.forEach(dev => {
-    const destinoEmail = somenteLider ? cfg.emailLider : dev.email;
-    const ccEmail = somenteLider ? '' : cfg.emailLider;
-    const prefixoAssunto = somenteLider ? `[TESTE - Ref: ${dev.nome}] ` : '';
-
-    MailApp.sendEmail({
-      to: destinoEmail,
-      cc: ccEmail,
-      subject: `${prefixoAssunto}Lembrete de Apontamento de Horas - Pendências Identificadas`,
-      htmlBody: montarEmailIndividualDev_(dev, cfg.horaMinima)
-    });
-  });
+  pendenciasPorDev.forEach(dev => enviarCobrancaDev_(dev, cfg, apur.periodo, 'Semanal', somenteLider));
 
   MailApp.sendEmail({
     to: cfg.emailLider,
     subject: `${somenteLider ? '[TESTE] ' : ''}Consolidado Semanal de Pendências (TimeSheet)`,
-    htmlBody: montarEmailConsolidadoLider_(pendenciasPorDev, periodo.dataDeIso, periodo.dataAteIso, cfg.horaMinima)
+    htmlBody: montarEmailConsolidadoLider_(pendenciasPorDev, apur.periodo.de, apur.periodo.ate, cfg.horaMinima)
   });
 
-  return somenteLider 
+  return somenteLider
     ? `Teste concluído! E-mails de teste enviados para ${cfg.emailLider}.`
     : `Alertas oficiais enviados com sucesso para ${pendenciasPorDev.length} dev(s) com cópia para o líder!`;
 }
@@ -741,95 +507,6 @@ function buscarWorklogsTempoAPI_(dataDe, dataAte, cfg) {
   return Array.isArray(json) ? json : (json.results || []);
 }
 
-/********************************************************************************
- * CÁLCULO DE PENDÊNCIAS PARA DISPARO DE ALERTAS SEMANAIS
- ********************************************************************************/
-function calcularPendenciasDevs_(worklogs, dataInicio, dataFim, cfg) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const mapaUsuarios = carregarMapaUsuarios_(ss);
-  const feriados = carregarFeriados_(ss);
-  const horaMinimaNum = parseFloat(cfg.horaMinima) || 6;
-
-  const horasPorDevDia = {};
-  const nomesDevs = {};
-
-  worklogs.forEach(wl => {
-    const info = extrairIdentificadoresColaborador_(wl);
-    const chaveUsername = String(info.username || '').trim().toLowerCase();
-    const chaveAccountId = String(info.accountId || '').trim().toLowerCase();
-    const chaveEmail = String(info.email || '').trim().toLowerCase();
-    const chaveNome = String(info.nome || '').trim().toLowerCase();
-
-    const deParaEncontrado = mapaUsuarios[chaveUsername] || 
-                             mapaUsuarios[chaveAccountId] || 
-                             mapaUsuarios[chaveEmail] || 
-                             mapaUsuarios[chaveEmail.split('@')[0]] ||
-                             mapaUsuarios[chaveNome];
-
-    let nomeFinal = (deParaEncontrado && deParaEncontrado.nome) ? deParaEncontrado.nome : (info.nome || info.email);
-    let emailFinal = (deParaEncontrado && deParaEncontrado.email) ? deParaEncontrado.email : info.email;
-
-    if (!emailFinal) emailFinal = chaveUsername || chaveAccountId || 'usuario.desconhecido';
-    if (emailFinal && !emailFinal.includes('@')) emailFinal += '@totvs.com.br';
-    emailFinal = emailFinal.toLowerCase();
-
-    const dataWl = (wl.started || wl.dateStarted || '').substring(0, 10);
-    const horas = (wl.timeSpentSeconds || 0) / 3600;
-
-    if (emailFinal && dataWl) {
-      const chave = `${emailFinal}|${dataWl}`;
-      horasPorDevDia[chave] = (horasPorDevDia[chave] || 0) + horas;
-      nomesDevs[emailFinal] = nomeFinal;
-    }
-  });
-
-  // Devs da DePara entram mesmo sem nenhum apontamento no período
-  Object.keys(mapaUsuarios).forEach(chave => {
-    const item = mapaUsuarios[chave];
-    if (item.email && item.nome && !nomesDevs[item.email]) nomesDevs[item.email] = item.nome;
-  });
-  const ausencias = carregarAusencias_(ss, Object.keys(nomesDevs).map(e => ({ email: e, nome: nomesDevs[e] })));
-  const hojeIso = formatarDataISO_(new Date());
-
-  const diasUteis = [];
-  let cursor = new Date(dataInicio);
-  while (cursor <= dataFim) {
-    if (cursor.getDay() !== 0 && cursor.getDay() !== 6) {
-      diasUteis.push(new Date(cursor));
-    }
-    cursor.setDate(cursor.getDate() + 1);
-  }
-
-  const pendenciasPorDev = [];
-
-  Object.keys(nomesDevs).forEach(emailDev => {
-    const nomeDev = nomesDevs[emailDev];
-    const pendencias = [];
-
-    diasUteis.forEach(dataObj => {
-      const dataChave = formatarDataISO_(dataObj);
-      if (feriados.has(dataChave) || dataChave >= hojeIso) return; // feriado ou dia ainda em andamento
-
-      const avaliacao = avaliarStatusEAusenciaDev_(emailDev, nomeDev, dataObj, ausencias, horaMinimaNum);
-
-      if (avaliacao.eDiaInteiro) return;
-
-      const chave = `${emailDev}|${dataChave}`;
-      const horas = horasPorDevDia[chave] || 0;
-
-      if (horas < avaliacao.cargaEsperadaNoDia) {
-        pendencias.push({ data: formatarDataBR_(dataObj), horas: horas, meta: avaliacao.cargaEsperadaNoDia, ausencia: descreverAusenciaDia_(avaliacao) });
-      }
-    });
-
-    if (pendencias.length > 0) {
-      pendenciasPorDev.push({ nome: nomeDev, email: emailDev, pendencias: pendencias });
-    }
-  });
-
-  return pendenciasPorDev;
-}
-
 function extrairIdentificadoresColaborador_(wl) {
   let nome = '', email = '', username = '', accountId = '';
   const autor = wl.author || wl.worker || wl.user || {};
@@ -850,7 +527,7 @@ function extrairIdentificadoresColaborador_(wl) {
   return { nome: nome, email: email, username: username, accountId: accountId };
 }
 
-function montarEmailIndividualDev_(item, horaMinima) {
+function montarEmailIndividualDev_(item, horaMinima, periodo) {
   const linhas = item.pendencias.map(p => `
     <tr>
       <td style="padding:8px;border:1px solid #ddd;">${p.data}</td>
@@ -866,7 +543,7 @@ function montarEmailIndividualDev_(item, horaMinima) {
     <div style="font-family:Arial,sans-serif;color:#333;">
       <p>Olá, <b>${item.nome}</b>.</p>
       <p>Lembrete automático sobre o apontamento de horas no Jira/Tempo.</p>
-      <p>Identificamos dias úteis concluídos com carga abaixo da meta estipulada:</p>
+      <p>Identificamos dias úteis concluídos com carga abaixo da meta estipulada${periodo ? ` (período de ${periodo.de.split('-').reverse().join('/')} a ${periodo.ate.split('-').reverse().join('/')})` : ''}:</p>
       <table style="border-collapse:collapse;width:100%;margin-top:10px;">
         <thead>
           <tr style="background:#f3f3f3;">
@@ -947,7 +624,7 @@ function converterParaData_(val) {
  * FUNÇÃO DE TESTE MANUAL DE INTEGRAÇÃO
  ********************************************************************************/
 function testarIntegracaoAusenciasEAgenda() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = obterPlanilha_();
   const mapaUsuarios = carregarMapaUsuarios_(ss);
   const devs = {};
   Object.keys(mapaUsuarios).forEach(k => { const i = mapaUsuarios[k]; if (i.email && i.nome) devs[i.email] = i.nome; });
@@ -974,8 +651,7 @@ function rodarExtracaoMatutina7h() {
     const resultado = extrairEGravarNaPlanilha();
     
     // Salva o resultado formatado temporariamente para o envio das 09h
-    const props = PropertiesService.getScriptProperties();
-    props.setProperty('CACHE_RELATORIO_MATUTINO', JSON.stringify(resultado));
+    gravarCacheGrande_('RELATORIO_MATUTINO', resultado, 21600);
     
     Logger.log('✅ Extração das 07:00 concluída e dados salvos no cache.');
     return 'Extração das 07:00 executada com sucesso!';
@@ -992,13 +668,8 @@ function enviarRelatorioMatutino9h() {
   const cfg = obterConfiguracoesAtuais();
   if (!cfg.jiraToken) throw new Error('Token da API não configurado.');
 
-  const props = PropertiesService.getScriptProperties();
-  const cacheRaw = props.getProperty('CACHE_RELATORIO_MATUTINO');
-  
-  let resultado;
-  if (cacheRaw) {
-    resultado = JSON.parse(cacheRaw);
-  } else {
+  let resultado = lerCacheGrande_('RELATORIO_MATUTINO');
+  if (!resultado) {
     // Caso a extração das 07h não tenha rodado, faz a extração na hora
     resultado = extrairEGravarNaPlanilha();
   }
