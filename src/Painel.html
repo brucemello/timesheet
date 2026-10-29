@@ -955,7 +955,7 @@
     /* ======================= Cadastros ======================= */
     const INFO_CAD = {
       colaboradores: 'Time que é cobrado. <b>Apelidos</b>: como a pessoa aparece na agenda quando não é pelo nome (ex.: Carlão, Zé), separados por vírgula. <b>Cobrar = NÃO</b> tira da cobrança semanal automática (ex.: líder), mas ela continua no painel.',
-      ausencias: 'Ausências que não estão na agenda nem na planilha de férias. Sem horas = dia inteiro; com horas = abate só aquelas horas de cada dia do intervalo.',
+      ausencias: '<b>Lugar único para ausências manuais</b> (licenças, atestados, afastamentos que não estão na agenda nem na planilha de férias): o Capacidade Não Produtiva também lê esta lista, então não precisa lançar lá. Sem horas = dia inteiro; com horas = abate só aquelas horas de cada dia do intervalo. Use no motivo palavras como "Licença", "Atestado" ou "Consulta" para classificar o tipo.',
       feriados: 'Os feriados nacionais e de SP já são automáticos (lista abaixo). Cadastre aqui os municipais, emendas e pontos facultativos.'
     };
     async function carregarCadastro(nome) {
