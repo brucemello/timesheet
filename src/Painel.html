@@ -56,7 +56,7 @@
     /* ---------- Layout ---------- */
     main { padding: 0 28px 32px; margin-top: -54px; position: relative; }
     .grid { display: grid; gap: 16px; }
-    .kpis { grid-template-columns: 1.4fr repeat(6, 1fr); }
+    .kpis { grid-template-columns: 1.35fr repeat(7, 1fr); }
     .row-2 { grid-template-columns: 1.15fr 1fr; margin-top: 16px; }
     .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--line); padding: 18px 20px; min-width: 0; }
     .card h2 { font-size: 15px; margin: 0; font-weight: 700; }
@@ -226,7 +226,8 @@
     .empty { text-align: center; padding: 50px 20px; color: var(--ink-3); }
     .empty b { display: block; color: var(--ink); font-size: 16px; margin-bottom: 6px; }
 
-    @media (max-width: 1250px) { .kpis { grid-template-columns: repeat(4, 1fr); } .kpi-hero { grid-column: span 2; } }
+    @media (max-width: 1500px) { .kpis { grid-template-columns: 1.35fr repeat(3, 1fr); } }
+    @media (max-width: 1250px) { .kpis { grid-template-columns: repeat(3, 1fr); } }
     @media (max-width: 900px) { .row-2, .gen-grid, .form-row, .action-grid { grid-template-columns: 1fr; } .kpis { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 560px) { .hero, main { padding-left: 16px; padding-right: 16px; } .search { width: 100%; } .cob-grid { grid-template-columns: 1fr; } }
   </style>
@@ -592,7 +593,12 @@
         apont += d.totais.apontadas; esperadas += d.totais.esperadas; falt += d.totais.horasFaltantes;
         diasPend += d.totais.diasPendentes; diasAus += d.totais.diasAusencia; horasAus += d.totais.horasAusencia;
       });
-      return { meta, cumprido, perc: meta ? cumprido / meta : 1, apont, esperadas, saldo: apont - esperadas, falt, diasPend, diasAus, horasAus };
+      // % não produtividade = horas de ausência ÷ capacidade bruta (dias úteis encerrados × meta diária)
+      const hm = DADOS.horaMinima || 0;
+      const capacidade = DADOS.devs.reduce((s, d) => s + d.totais.diasUteis * hm, 0);
+      const horasNaoProd = diasAus * hm + horasAus;
+      return { meta, cumprido, perc: meta ? cumprido / meta : 1, apont, esperadas, saldo: apont - esperadas, falt, diasPend, diasAus, horasAus,
+        capacidade, horasNaoProd, percNaoProd: capacidade ? horasNaoProd / capacidade : 0 };
     }
 
     function renderKpis() {
@@ -602,7 +608,7 @@
       const cor = p >= 95 ? '#10b981' : p >= 80 ? '#f59e0b' : '#ef4444';
       const pill = p >= 95 ? ['pill-ok', 'Time em dia'] : p >= 80 ? ['pill-warn', 'Atenção'] : ['pill-bad', 'Abaixo da meta'];
       const C = 2 * Math.PI * 44;
-      const kpi = (label, icon, accent, valor, unid, pe) => `<div class="card kpi" style="--accent:${accent}">
+      const kpi = (label, icon, accent, valor, unid, pe, dica) => `<div class="card kpi" style="--accent:${accent}"${dica ? ` title="${esc(dica)}"` : ''}>
         <div class="kpi-top"><span class="kpi-label">${label}</span><span class="kpi-icon">${icon}</span></div>
         <div><div class="kpi-value">${valor}${unid ? `<small>${unid}</small>` : ''}</div><div class="kpi-foot">${pe || '&nbsp;'}</div></div></div>`;
       $('kpis').innerHTML = `
@@ -618,7 +624,10 @@
         ${kpi('Saldo', t.saldo >= 0 ? '📈' : '📉', t.saldo >= 0 ? '#10b981' : '#ef4444', (t.saldo > 0 ? '+' : '') + fmtH(t.saldo, 0), 'h', 'apontado − meta')}
         ${kpi('Com pendência', '⚠️', '#ef4444', devsPend, `/${DADOS.devs.length}`, 'colaboradores')}
         ${kpi('Dias pendentes', '📅', '#f97316', t.diasPend, '', `faltam ${fmtH(t.falt)}h`)}
-        ${kpi('Ausências', '🌴', '#8b5cf6', t.diasAus, ' dias', `+ ${fmtH(t.horasAus)}h parciais`)}`;
+        ${kpi('Ausências', '🌴', '#8b5cf6', t.diasAus, ' dias', `+ ${fmtH(t.horasAus)}h parciais`)}
+        ${kpi('% Não produtivo', '📊', t.percNaoProd > 0.2 ? '#ef4444' : t.percNaoProd > 0.1 ? '#f59e0b' : '#ec4899', fmtH(t.percNaoProd * 100), '%',
+          `${fmtH(t.horasNaoProd, 0)}h de ${fmtH(t.capacidade, 0)}h de capacidade`,
+          'Horas de ausência (férias, folgas, consultas, atestados, treinamentos) ÷ capacidade bruta do time (dias úteis encerrados × meta diária). Feriados não entram na conta.')}`;
     }
 
     function novoGrafico(id, cfg) { if (charts[id]) charts[id].destroy(); charts[id] = new Chart($(id), cfg); }
