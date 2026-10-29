@@ -527,39 +527,117 @@ function extrairIdentificadoresColaborador_(wl) {
   return { nome: nome, email: email, username: username, accountId: accountId };
 }
 
+/**
+ * E-mail de cobrança individual — layout em tabelas com estilos inline
+ * (compatível com Gmail, Outlook e celular).
+ */
 function montarEmailIndividualDev_(item, horaMinima, periodo) {
-  const linhas = item.pendencias.map(p => `
-    <tr>
-      <td style="padding:8px;border:1px solid #ddd;">${p.data}</td>
-      <td style="padding:8px;border:1px solid #ddd;text-align:center;font-weight:bold;${p.horas === 0 ? 'background:#f8d7da;color:#721c24;' : 'background:#fff3cd;color:#856404;'}">
-        ${p.horas.toFixed(2).replace('.', ',')}h
-      </td>
-      <td style="padding:8px;border:1px solid #ddd;text-align:center;">${formatarHorasEmail_(p.meta, horaMinima)}</td>
-      <td style="padding:8px;border:1px solid #ddd;font-size:12px;color:#555;">${p.ausencia || '-'}</td>
-    </tr>
-  `).join('');
+  const esc = t => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const DIAS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+  const br = iso => iso.split('-').reverse().join('/');
+  const primeiroNome = String(item.nome || '').trim().split(/\s+/)[0] || '';
+  const nomeFmt = primeiroNome.charAt(0).toUpperCase() + primeiroNome.slice(1).toLowerCase();
+  const pend = item.pendencias || [];
+  const faltaTotal = pend.reduce((s, p) => s + Math.max(0, (p.meta == null ? parseFloat(horaMinima) || 0 : p.meta) - p.horas), 0);
+  const zerados = pend.filter(p => !p.horas).length;
 
-  return `
-    <div style="font-family:Arial,sans-serif;color:#333;">
-      <p>Olá, <b>${item.nome}</b>.</p>
-      <p>Lembrete automático sobre o apontamento de horas no Jira/Tempo.</p>
-      <p>Identificamos dias úteis concluídos com carga abaixo da meta estipulada${periodo ? ` (período de ${periodo.de.split('-').reverse().join('/')} a ${periodo.ate.split('-').reverse().join('/')})` : ''}:</p>
-      <table style="border-collapse:collapse;width:100%;margin-top:10px;">
-        <thead>
-          <tr style="background:#f3f3f3;">
-            <th style="padding:8px;border:1px solid #ddd;text-align:left;">Data</th>
-            <th style="padding:8px;border:1px solid #ddd;text-align:center;">Horas Apontadas</th>
-            <th style="padding:8px;border:1px solid #ddd;text-align:center;">Meta do Dia</th>
-            <th style="padding:8px;border:1px solid #ddd;text-align:left;">Ausência considerada</th>
-          </tr>
-        </thead>
-        <tbody>${linhas}</tbody>
+  let urlTempo = '';
+  try { urlTempo = obterConfiguracoesAtuais().jiraBaseUrl.replace(/\/$/, '') + '/secure/Tempo.jspa#/my-work/week'; } catch (e) { urlTempo = ''; }
+
+  const linhas = pend.map((p, i) => {
+    const iso = p.iso || p.data.split('/').reverse().join('-');
+    const d = new Date(+iso.substr(0, 4), +iso.substr(5, 2) - 1, +iso.substr(8, 2));
+    const meta = p.meta == null ? parseFloat(horaMinima) || 0 : p.meta;
+    const falta = Math.max(0, meta - p.horas);
+    const zero = !p.horas;
+    const fundo = i % 2 ? '#f8fafc' : '#ffffff';
+    const badge = zero
+      ? '<span style="display:inline-block;padding:3px 10px;border-radius:999px;background:#fee2e2;color:#b91c1c;font-size:11px;font-weight:700;white-space:nowrap;">Sem registro</span>'
+      : '<span style="display:inline-block;padding:3px 10px;border-radius:999px;background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;">Parcial</span>';
+    const td = 'padding:10px 8px;border-bottom:1px solid #e2e8f0;font-size:13px;color:#1e293b;';
+    return `<tr style="background:${fundo};">
+      <td style="${td}white-space:nowrap;"><b>${esc((p.data || br(iso)).substring(0, 5))}</b><div style="font-size:11px;color:#64748b;text-transform:capitalize;">${DIAS[d.getDay()]}</div></td>
+      <td style="${td}text-align:center;">${formatarHorasLegivel_(p.horas)}</td>
+      <td style="${td}text-align:center;color:#64748b;">${formatarHorasLegivel_(meta)}</td>
+      <td style="${td}text-align:center;font-weight:700;color:#b91c1c;">${formatarHorasLegivel_(falta)}</td>
+      <td style="${td}text-align:center;">${badge}${p.ausencia ? `<div style="margin-top:4px;font-size:11px;color:#6d28d9;">${esc(p.ausencia)} já descontada</div>` : ''}</td>
+    </tr>`;
+  }).join('');
+
+  const th = 'padding:10px 8px;background:#f1f5f9;border-bottom:1px solid #e2e8f0;font-size:10.5px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.3px;';
+  const card = (valor, rotulo, cor) => `<td width="33%" style="padding:0 4px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:10px;border-top:3px solid ${cor};">
+        <tr><td style="padding:12px 6px;text-align:center;">
+          <div style="font-size:24px;font-weight:800;color:#0f172a;line-height:1.1;">${valor}</div>
+          <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-top:4px;">${rotulo}</div>
+        </td></tr></table></td>`;
+  const periodoTxt = periodo ? `${br(periodo.de)} a ${br(periodo.ate)}` : '';
+
+  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;">
+<tr><td align="center" style="padding:20px 6px;">
+  <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="width:100%;max-width:640px;background:#ffffff;border-radius:14px;overflow:hidden;font-family:'Segoe UI',Arial,Helvetica,sans-serif;box-shadow:0 2px 10px rgba(15,23,42,.06);">
+
+    <tr><td bgcolor="#0b1f3a" style="background:#0b1f3a;background-image:linear-gradient(120deg,#0b1f3a 0%,#0f5b78 100%);padding:26px 30px;">
+      <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#7dd3fc;font-weight:700;">Timesheet · Apontamento de horas</div>
+      <div style="font-size:22px;font-weight:800;color:#ffffff;margin-top:6px;">Pendências de apontamento</div>
+      ${periodoTxt ? `<div style="font-size:13px;color:#cbd5e1;margin-top:4px;">Período de ${periodoTxt}</div>` : ''}
+    </td></tr>
+
+    <tr><td style="padding:28px 30px 8px;">
+      <p style="margin:0 0 12px;font-size:15px;color:#0f172a;">Olá, <b>${esc(nomeFmt)}</b>!</p>
+      <p style="margin:0;font-size:14px;line-height:1.6;color:#334155;">Identificamos dias úteis já encerrados em que as horas lançadas no Jira/Tempo ficaram abaixo da meta diária. Pedimos, por gentileza, que regularize os apontamentos abaixo.</p>
+    </td></tr>
+
+    <tr><td style="padding:18px 16px 6px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+        ${card(pend.length, pend.length === 1 ? 'dia pendente' : 'dias pend.', '#ef4444')}
+        ${card(formatarHorasLegivel_(faltaTotal), 'a apontar', '#f97316')}
+        ${card(zerados, 'sem registro', '#64748b')}
+      </tr></table>
+    </td></tr>
+
+    <tr><td style="padding:18px 12px 6px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:10px;border-collapse:separate;overflow:hidden;">
+        <tr>
+          <th align="left" style="${th}">Data</th>
+          <th style="${th}text-align:center;">Apontado</th>
+          <th style="${th}text-align:center;">Meta</th>
+          <th style="${th}text-align:center;">Falta</th>
+          <th style="${th}text-align:center;">Situação</th>
+        </tr>
+        ${linhas}
       </table>
-      <p style="margin-top:15px;font-size:12px;color:#666;">
-        <i>Férias, folgas, feriados e ausências da agenda do time já foram descontados da meta. Se faltou registrar alguma ausência na agenda, avise o seu líder.</i>
-      </p>
-    </div>
-  `;
+    </td></tr>
+
+    ${urlTempo ? `<tr><td align="center" style="padding:22px 30px 6px;">
+      <table role="presentation" cellpadding="0" cellspacing="0"><tr><td bgcolor="#0f5b78" style="border-radius:8px;background:#0f5b78;">
+        <a href="${esc(urlTempo)}" target="_blank" style="display:inline-block;padding:12px 26px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:8px;">Abrir meu Timesheet no Tempo →</a>
+      </td></tr></table>
+    </td></tr>` : ''}
+
+    <tr><td style="padding:20px 30px 26px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;"><tr><td style="padding:12px 16px;font-size:12.5px;line-height:1.55;color:#0c4a6e;">
+        <b>Já descontamos da meta:</b> férias, folgas, feriados e ausências registradas na agenda do time. Se você esteve ausente em algum desses dias e o registro não está na agenda, responda este e-mail ou avise seu líder para ajustarmos.
+      </td></tr></table>
+    </td></tr>
+
+    <tr><td style="padding:16px 30px;background:#f8fafc;border-top:1px solid #e2e8f0;font-size:11.5px;color:#94a3b8;line-height:1.5;">
+      Mensagem automática do controle de Timesheet · meta diária de ${formatarHorasLegivel_(parseFloat(horaMinima) || 0)} por dia útil.
+    </td></tr>
+
+  </table>
+</td></tr></table></body></html>`;
+}
+
+/** 4 -> "4h", 0.33 -> "20min", 4.5 -> "4h30" */
+function formatarHorasLegivel_(h) {
+  const min = Math.round((Number(h) || 0) * 60);
+  if (min <= 0) return '0h';
+  const hh = Math.floor(min / 60), mm = min % 60;
+  if (!hh) return mm + 'min';
+  return hh + 'h' + (mm ? String(mm).padStart(2, '0') : '');
 }
 
 function formatarHorasEmail_(meta, horaMinima) {

@@ -100,7 +100,10 @@ assert.strictEqual(R('salvarCadastroPainel("ausencias", __ruim)').sucesso, false
 // 4) prévia e cobrança individual
 r = R('previewCobrancaPainel({ email: "evandro.peixoto@totvs.com.br" })');
 assert.ok(r.sucesso && /Evandro/.test(r.html) && /01\/10\/2026/.test(r.html), 'prévia com nome e período');
-assert.ok(!/05\/10\/2026<\/td>/.test(r.html), 'dia de atestado não aparece na cobrança');
+assert.ok(!/<b>05\/10<\/b>/.test(r.html) && /<b>01\/10<\/b>/.test(r.html), 'dia de atestado não aparece na cobrança');
+assert.ok(/Pendências de apontamento/.test(r.html) && /Tempo\.jspa/.test(r.html), 'layout novo com botão para o Tempo');
+assert.strictEqual(R('formatarHorasLegivel_(0.33)'), '20min');
+assert.strictEqual(R('formatarHorasLegivel_(4.5)'), '4h30');
 r = R('previewCobrancaPainel({ email: "fabio.mendonca@totvs.com.br" })');
 assert.ok(r.sucesso && !r.html, 'quem está em dia não tem prévia');
 
