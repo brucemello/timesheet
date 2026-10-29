@@ -102,6 +102,8 @@ r = R('previewCobrancaPainel({ email: "evandro.peixoto@totvs.com.br" })');
 assert.ok(r.sucesso && /Evandro/.test(r.html) && /01\/10\/2026/.test(r.html), 'prévia com nome e período');
 assert.ok(!/<b>05\/10<\/b>/.test(r.html) && /<b>01\/10<\/b>/.test(r.html), 'dia de atestado não aparece na cobrança');
 assert.ok(/Pendências de apontamento/.test(r.html) && /Tempo\.jspa/.test(r.html), 'layout novo com botão para o Tempo');
+assert.ok(r.html.indexOf('/secure/Tempo.jspa#/teams/team/644/timesheet?columns=WORKED_COLUMN&amp;columns=PORTION_OF_REQUIRED_COLUMN&amp;dateDisplayType=days&amp;from=2026-10-01&amp;groupBy=worker') > 0, 'link do timesheet do time');
+assert.ok(/teamId=644&amp;to=2026-10-\d\d&amp;viewType=TIMESHEET/.test(r.html), 'link termina no fim do período');
 assert.strictEqual(R('formatarHorasLegivel_(0.33)'), '20min');
 assert.strictEqual(R('formatarHorasLegivel_(4.5)'), '4h30');
 r = R('previewCobrancaPainel({ email: "fabio.mendonca@totvs.com.br" })');

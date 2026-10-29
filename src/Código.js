@@ -542,7 +542,7 @@ function montarEmailIndividualDev_(item, horaMinima, periodo) {
   const zerados = pend.filter(p => !p.horas).length;
 
   let urlTempo = '';
-  try { urlTempo = obterConfiguracoesAtuais().jiraBaseUrl.replace(/\/$/, '') + '/secure/Tempo.jspa#/my-work/week'; } catch (e) { urlTempo = ''; }
+  try { urlTempo = montarUrlTimesheetTempo_(obterConfiguracoesAtuais(), periodo); } catch (e) { urlTempo = ''; }
 
   const linhas = pend.map((p, i) => {
     const iso = p.iso || p.data.split('/').reverse().join('-');
@@ -613,7 +613,7 @@ function montarEmailIndividualDev_(item, horaMinima, periodo) {
 
     ${urlTempo ? `<tr><td align="center" style="padding:22px 30px 6px;">
       <table role="presentation" cellpadding="0" cellspacing="0"><tr><td bgcolor="#0f5b78" style="border-radius:8px;background:#0f5b78;">
-        <a href="${esc(urlTempo)}" target="_blank" style="display:inline-block;padding:12px 26px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:8px;">Abrir meu Timesheet no Tempo →</a>
+        <a href="${esc(urlTempo)}" target="_blank" style="display:inline-block;padding:12px 26px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:8px;">Abrir o Timesheet no Tempo →</a>
       </td></tr></table>
     </td></tr>` : ''}
 
@@ -629,6 +629,22 @@ function montarEmailIndividualDev_(item, horaMinima, periodo) {
 
   </table>
 </td></tr></table></body></html>`;
+}
+
+/** Link da visão de timesheet do time no Tempo, já no período cobrado. */
+function montarUrlTimesheetTempo_(cfg, periodo) {
+  const base = String(cfg.jiraBaseUrl || '').replace(/\/$/, '');
+  const team = encodeURIComponent(String(cfg.teamId || '').trim());
+  if (!base || !team) return '';
+  const hoje = formatarDataISO_(new Date());
+  const de = periodo && periodo.de ? periodo.de : hoje.substring(0, 8) + '01';
+  const ate = periodo && periodo.ate ? periodo.ate : hoje;
+  const params = [
+    'columns=WORKED_COLUMN', 'columns=PORTION_OF_REQUIRED_COLUMN', 'dateDisplayType=days',
+    'from=' + de, 'groupBy=worker', 'order=ASCENDING', 'periodType=FIXED', 'sortBy=TITLE_COLUMN',
+    'subPeriodType=MONTH', 'teamId=' + team, 'to=' + ate, 'viewType=TIMESHEET'
+  ];
+  return `${base}/secure/Tempo.jspa#/teams/team/${team}/timesheet?${params.join('&')}`;
 }
 
 /** 4 -> "4h", 0.33 -> "20min", 4.5 -> "4h30" */
