@@ -1,0 +1,30 @@
+name: Verificar Apps Script
+
+# Baixa o código publicado no Apps Script e compara com o repositório.
+on:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Configurar clasp
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+          SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
+        run: ./scripts/setup-clasp.sh
+      - name: Comparar
+        run: |
+          mkdir -p /tmp/remoto
+          jq '.rootDir="/tmp/remoto"' .clasp.json > /tmp/c.json && mv /tmp/c.json .clasp.json
+          clasp pull
+          echo "::notice title=Arquivos no Apps Script::$(cd /tmp/remoto && ls | tr '\n' ' ')"
+          echo "::notice title=Diferencas::$(diff -rq src /tmp/remoto | tr '\n' ' ' || true) FIM"
+          echo "::notice title=Script ID::${SCRIPT_ID:0:10}... tamanho ${#SCRIPT_ID}"
+          echo "::notice title=Menu publicado::$(grep -o "addItem('[^']*'" /tmp/remoto/*.js | tr '\n' ' ')"
+        env:
+          SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
