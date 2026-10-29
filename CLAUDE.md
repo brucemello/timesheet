@@ -18,5 +18,6 @@ Projeto Google Apps Script (planilha + Web App) de controle de apontamento de ho
 - `src/Ausencias.js` — férias, folgas, agenda de ausências e feriados (meta do dia de cada dev); lógica trazida do Capacidade Não Produtiva
 - `src/Painel.html` + `src/PainelServidor.js` — painel de controle (Web App `doGet` e modal pelo menu): dashboard, cobranças individuais, ausências, cadastros e configurações
 - `src/Apuracao.js` — apuração única do período (Tempo + ausências + feriados), cache, envio e log de cobranças
+- Área do administrador (Configurações): links de planilha, Apps Script e GitHub; admin = propriedade `CONFIG_ADMINS` ou o dono da implantação (checado no servidor)
 - `tests/` — testes Node com dados reais de exemplo (Google simulado)
 - `src/bkp_gs.html`, `src/bkp_html.html` — backups antigos (não usados)

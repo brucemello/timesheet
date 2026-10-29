@@ -159,6 +159,18 @@ assert.strictEqual(R('executarAcaoPainel("inexistente")').sucesso, false);
 ctx.SpreadsheetApp.getActiveSpreadsheet = () => null;
 assert.ok(R('obterDadosPainel({})').sucesso);
 
+// 9) Área do administrador: só o admin recebe os links
+r = R('obterAreaAdminPainel()');
+assert.ok(r.sucesso && /script\.google\.com\/home\/projects\/SCRIPT123\/edit/.test(JSON.stringify(r.grupos)), 'admin vê o editor');
+assert.ok(R('obterDadosPainel({})').contexto.admin);
+ctx.usuarioAtivo = 'william.palves@totvs.com.br';
+assert.strictEqual(R('obterAreaAdminPainel()').sucesso, false, 'não admin é barrado');
+r = R('obterDadosPainel({})');
+assert.ok(!r.contexto.admin && !r.contexto.urlPlanilha, 'não admin não recebe link da planilha');
+ctx.props.CONFIG_ADMINS = 'william.palves@totvs.com.br, bruce.mello@totvs.com.br';
+assert.ok(R('obterAreaAdminPainel()').sucesso, 'lista de admins na propriedade');
+delete ctx.props.CONFIG_ADMINS; ctx.usuarioAtivo = 'bruce.mello@totvs.com.br';
+
 // Dados de exemplo para o teste visual do painel
-if (process.env.EXPORTAR_DADOS) require('fs').writeFileSync(process.env.EXPORTAR_DADOS, JSON.stringify({ painel: R('obterDadosPainel({})'), config: R('obterConfigPainel()'), cad: R('obterCadastroPainel("colaboradores")'), prev: R('previewCobrancaPainel({ email: "evandro.peixoto@totvs.com.br" })') }));
+if (process.env.EXPORTAR_DADOS) require('fs').writeFileSync(process.env.EXPORTAR_DADOS, JSON.stringify({ painel: R('obterDadosPainel({})'), config: R('obterConfigPainel()'), cad: R('obterCadastroPainel("colaboradores")'), prev: R('previewCobrancaPainel({ email: "evandro.peixoto@totvs.com.br" })'), admin: R('obterAreaAdminPainel()') }));
 console.log('TODOS OS TESTES DO PAINEL PASSARAM');

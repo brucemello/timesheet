@@ -7,6 +7,7 @@ const exibir = v => v instanceof Date ? fmtBR(v) : (v == null ? '' : String(v));
 class Planilha {
   constructor(nome, linhas) { this.nome = nome; this.dados = (linhas || []).map(r => r.slice()); }
   getName() { return this.nome; }
+  getSheetId() { return this.nome.length; }
   getLastRow() { let n = this.dados.length; while (n && this.dados[n - 1].every(v => v === '' || v == null)) n--; return n; }
   getLastColumn() { return Math.max(0, ...this.dados.map(r => { let n = r.length; while (n && (r[n - 1] === '' || r[n - 1] == null)) n--; return n; })); }
   celula(r, c) { return (this.dados[r] || [])[c]; }
@@ -43,7 +44,8 @@ function criarContexto(opts) {
   const ctx = {
     console, emails, gatilhos, props,
     Logger: { log: () => {} },
-    Session: { getScriptTimeZone: () => 'America/Sao_Paulo', getActiveUser: () => ({ getEmail: () => 'bruce.mello@totvs.com.br' }) },
+    Session: { getScriptTimeZone: () => 'America/Sao_Paulo', getActiveUser: () => ({ getEmail: () => ctx.usuarioAtivo }), getEffectiveUser: () => ({ getEmail: () => 'bruce.mello@totvs.com.br' }) },
+    usuarioAtivo: 'bruce.mello@totvs.com.br',
     Utilities: { formatDate: (d, tz, f) => f === 'yyyy-MM-dd' ? `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
       : f === 'dd/MM/yyyy HH:mm' ? `${fmtBR(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}` : fmtBR(d) },
     PropertiesService: { getScriptProperties: () => ({ getProperty: k => props[k] == null ? null : props[k], setProperty: (k, v) => { props[k] = String(v); }, deleteProperty: k => { delete props[k]; } }) },
@@ -53,6 +55,7 @@ function criarContexto(opts) {
     ScriptApp: {
       getProjectTriggers: () => gatilhos.slice(), deleteTrigger: t => gatilhos.splice(gatilhos.indexOf(t), 1),
       newTrigger: f => { const b = { timeBased: () => b, onWeekDay: () => b, atHour: () => b, create: () => { gatilhos.push({ getHandlerFunction: () => f }); } }; return b; },
+      getScriptId: () => 'SCRIPT123',
       WeekDay: { MONDAY: 1, TUESDAY: 2, WEDNESDAY: 3, THURSDAY: 4, FRIDAY: 5 }, getService: () => ({ getUrl: () => 'https://script.google.com/macros/s/X/exec' })
     },
     SpreadsheetApp: {

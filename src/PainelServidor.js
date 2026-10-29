@@ -43,14 +43,15 @@ function obterDadosPainel(params) {
     apur.devs.forEach(d => d.ultimaCobranca = ultima[d.email] || '');
 
     const cfg = obterConfiguracoesAtuais();
+    const admin = ehAdmin_();
     let urlPlanilha = '';
-    try { urlPlanilha = obterPlanilha_().getUrl(); } catch (e) { urlPlanilha = ''; }
+    if (admin) { try { urlPlanilha = obterPlanilha_().getUrl(); } catch (e) { urlPlanilha = ''; } }
     return {
       apuracao: apur,
       logCobrancas: log.slice(0, 60),
       contexto: {
         emailLider: cfg.emailLider, periodoAuto: cfg.periodoAuto, mesPadraoDe: cfg.mesDe, mesPadraoAte: cfg.mesAte,
-        urlPlanilha: urlPlanilha, urlWebApp: obterUrlWebApp_()
+        urlPlanilha: urlPlanilha, urlWebApp: obterUrlWebApp_(), admin: admin
       }
     };
   });
@@ -58,6 +59,66 @@ function obterDadosPainel(params) {
 
 function obterUrlWebApp_() {
   try { return ScriptApp.getService().getUrl() || ''; } catch (e) { return ''; }
+}
+
+/* =============================================================================
+ * ÁREA DO ADMINISTRADOR
+ * Admin = e-mails da propriedade CONFIG_ADMINS (separados por vírgula) ou,
+ * se ela não existir, o dono da implantação (quem publicou o Web App).
+ * Os links só saem do servidor para admin.
+ * ===========================================================================*/
+const CHAVE_ADMINS = 'CONFIG_ADMINS';
+const REPO_GITHUB = 'https://github.com/brucemello/timesheet';
+
+function usuarioAtual_() {
+  try { return String(Session.getActiveUser().getEmail() || '').trim().toLowerCase(); } catch (e) { return ''; }
+}
+
+function listaAdmins_() {
+  const prop = PropertiesService.getScriptProperties().getProperty(CHAVE_ADMINS);
+  if (prop) return prop.split(/[,;\s]+/).map(x => x.trim().toLowerCase()).filter(Boolean);
+  try { const dono = String(Session.getEffectiveUser().getEmail() || '').toLowerCase(); return dono ? [dono] : []; } catch (e) { return []; }
+}
+
+function ehAdmin_() {
+  const u = usuarioAtual_();
+  return !!u && listaAdmins_().indexOf(u) >= 0;
+}
+
+function exigirAdmin_() {
+  if (!ehAdmin_()) throw new Error('Acesso restrito ao administrador.');
+}
+
+function obterAreaAdminPainel() {
+  return respostaPainel_(() => {
+    exigirAdmin_();
+    const ss = obterPlanilha_();
+    const scriptId = ScriptApp.getScriptId();
+    const proj = `https://script.google.com/home/projects/${scriptId}`;
+    const aba = nome => { const a = ss.getSheetByName(nome); return a ? `${ss.getUrl()}#gid=${a.getSheetId()}` : ''; };
+    return {
+      usuario: usuarioAtual_(),
+      admins: listaAdmins_(),
+      grupos: [
+        { titulo: 'Planilha', links: [
+          { icone: '📗', nome: 'Planilha do Timesheet', desc: ss.getName(), url: ss.getUrl() },
+          { icone: '📧', nome: 'Log de cobranças', desc: 'Aba Log_Cobrancas', url: aba(ABA_LOG_COBRANCAS) },
+          { icone: '👥', nome: 'Colaboradores (DePara)', desc: 'Aba DePara_Usuarios', url: aba('DePara_Usuarios') },
+          { icone: '⚠️', nome: 'Horas pendentes', desc: 'Aba Horas_Pendentes', url: aba('Horas_Pendentes') }
+        ].filter(l => l.url) },
+        { titulo: 'Apps Script', links: [
+          { icone: '🧩', nome: 'Editor de scripts', desc: 'Código do projeto', url: `${proj}/edit` },
+          { icone: '📜', nome: 'Execuções', desc: 'Logs e erros das rotinas', url: `${proj}/executions` },
+          { icone: '⏰', nome: 'Acionadores', desc: 'Gatilhos agendados', url: `${proj}/triggers` },
+          { icone: '🚀', nome: 'Implantações', desc: 'Versões do Web App', url: `${proj}/deployments` }
+        ] },
+        { titulo: 'GitHub', links: [
+          { icone: '🐙', nome: 'Repositório', desc: 'brucemello/timesheet', url: REPO_GITHUB },
+          { icone: '⚙️', nome: 'Deploys (Actions)', desc: 'Histórico de publicações', url: `${REPO_GITHUB}/actions` }
+        ] }
+      ]
+    };
+  });
 }
 
 /* =============================================================================

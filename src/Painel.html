@@ -451,8 +451,12 @@
               <button class="action" data-acao="testeLider"><span class="ic">🧪</span><span><b>Teste da cobrança semanal</b><small>Todos os e-mails só para o líder</small></span></button>
               <button class="action" data-acao="alertaSemanal" data-confirma="Enviar a cobrança oficial agora para TODOS os colaboradores com pendência e Cobrar = SIM?"><span class="ic">🚀</span><span><b>Cobrança semanal oficial</b><small>Todos com pendência e Cobrar = SIM</small></span></button>
               <button class="action" data-acao="limparCache"><span class="ic">🧹</span><span><b>Limpar cache</b><small>Força buscar tudo de novo</small></span></button>
-              <button class="action" id="btnAbrirPlanilha"><span class="ic">📗</span><span><b>Abrir planilha</b><small>Abas e logs completos</small></span></button>
             </div>
+          </section>
+          <section class="card" id="cardAdmin" hidden style="border:1px solid #c7d2fe;background:linear-gradient(135deg,#ffffff 0%,#f5f7ff 100%)">
+            <div class="card-head"><div><h2>🔐 Área do administrador</h2><div class="card-sub" id="adminSub">Planilha, scripts e publicações</div></div>
+              <span class="chip c-vio">Somente admin</span></div>
+            <div id="adminLinks"></div>
           </section>
           <section class="card">
             <div class="card-head"><div><h2>Acesso pelo navegador</h2><div class="card-sub">Link do Web App deste painel</div></div></div>
@@ -1032,7 +1036,7 @@
         $('cAuto').checked = !!CFG.periodoAuto; $('cMesDe').value = CFG.mesDe || ''; $('cMesAte').value = CFG.mesAte || '';
         $('cFerias').value = CFG.urlFerias || ''; $('cAgenda').value = CFG.urlAgenda || '';
         $('cWebApp').value = CTX.urlWebApp || '(publique como Web App para ter o link)';
-        alternarMeses(); renderRotinas(r.rotinas);
+        alternarMeses(); renderRotinas(r.rotinas); carregarAdmin();
         $('feriadosAuto').innerHTML = (r.feriadosAuto || []).map(f => `<span class="chip c-gray" title="${esc(f.descricao)}">${fmtData(f.data)} · ${esc(f.descricao)}</span>`).join('');
       } catch (e) { toast(e.message, true); }
       finally { if (!silencioso) pronto(); }
@@ -1067,7 +1071,16 @@
         if (b.dataset.acao === 'limparCache' || b.dataset.acao === 'alertaSemanal') carregar(b.dataset.acao === 'limparCache');
       } catch (e) { toast(e.message, true); } finally { pronto(); }
     });
-    $('btnAbrirPlanilha').onclick = () => { if (CTX.urlPlanilha) window.open(CTX.urlPlanilha, '_blank'); else toast('Planilha ainda não carregada.', true); };
+    async function carregarAdmin() {
+      if (!CTX.admin) { $('cardAdmin').hidden = true; return; }
+      try {
+        const r = await chamar('obterAreaAdminPainel');
+        $('adminSub').textContent = `Conectado como ${r.usuario} · planilha, scripts e publicações`;
+        $('adminLinks').innerHTML = r.grupos.map(g => `<div class="card-sub" style="font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin:4px 0 8px">${esc(g.titulo)}</div>
+          <div class="action-grid" style="margin-bottom:14px">${g.links.map(l => `<a class="action" href="${esc(l.url)}" target="_blank" rel="noopener" style="text-decoration:none"><span class="ic">${l.icone}</span><span><b>${esc(l.nome)} ↗</b><small>${esc(l.desc)}</small></span></a>`).join('')}</div>`).join('');
+        $('cardAdmin').hidden = false;
+      } catch (e) { $('cardAdmin').hidden = true; }
+    }
     $('cWebApp').onclick = () => { $('cWebApp').select(); try { navigator.clipboard.writeText($('cWebApp').value); toast('Link copiado.'); } catch (e) {} };
 
     /* ======================= Início ======================= */
