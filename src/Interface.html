@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+      body { margin: 0; padding: 12px; background-color: #f4f6f9; color: #202124; }
+      
+      /* Banner Superior Executivo TOTVS */
+      .banner-header {
+        background: linear-gradient(135deg, #0f2b48 0%, #1a4971 100%);
+        color: #ffffff;
+        padding: 16px 20px;
+        border-radius: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+      }
+      .banner-title { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+      .banner-subtitle { font-size: 11px; opacity: 0.85; margin-top: 3px; }
+      .badge-conexao { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+
+      /* Navegação por Abas */
+      .nav-tabs {
+        display: flex;
+        gap: 4px;
+        border-bottom: 2px solid #dadce0;
+        margin-bottom: 12px;
+        background-color: #ffffff;
+        padding: 4px 8px 0 8px;
+        border-radius: 8px 8px 0 0;
+      }
+      .tab-btn {
+        padding: 10px 16px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #5f6368;
+        background: transparent;
+        border: none;
+        border-bottom: 3px solid transparent;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .tab-btn.active {
+        color: #1a73e8;
+        border-bottom-color: #1a73e8;
+        background-color: #e8f0fe;
+        border-radius: 4px 4px 0 0;
+      }
+
+      /* Cards KPI (5 Colunas) */
+      .grid-kpis {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .card-kpi {
+        background: #ffffff;
+        border: 1px solid #dadce0;
+        border-radius: 8px;
+        padding: 12px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      }
+      .kpi-title { font-size: 10px; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.5px; }
+      .kpi-value { font-size: 18px; font-weight: 700; margin-top: 4px; }
+
+      /* Container das Abas */
+      .tab-content { display: none; background: #ffffff; border: 1px solid #dadce0; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+      .tab-content.active { display: block; }
+
+      /* Tabelas */
+      table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; }
+      th { background-color: #f1f3f4; color: #3c4043; font-size: 11px; text-transform: uppercase; font-weight: 700; padding: 8px 10px; text-align: left; border-bottom: 2px solid #dadce0; }
+      td { padding: 8px 10px; border-bottom: 1px solid #e0e0e0; color: #202124; }
+      tr:hover { background-color: #f8f9fa; }
+
+      /* Form */
+      .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+      label { font-size: 11px; font-weight: 600; color: #3c4043; display: block; margin-bottom: 4px; }
+      input { width: 100%; padding: 8px; font-size: 12px; border: 1px solid #dadce0; border-radius: 4px; }
+
+      /* Botões Estilizados */
+      .btn-group-top { display: flex; gap: 8px; }
+      .btn-group { display: flex; gap: 8px; margin-top: 12px; }
+      button.btn-main { padding: 8px 14px; font-size: 12px; font-weight: 600; border: none; border-radius: 4px; cursor: pointer; color: white; display: flex; align-items: center; gap: 6px; }
+      .btn-blue { background-color: #1a73e8; }
+      .btn-blue:hover { background-color: #1557b0; }
+      .btn-green { background-color: #34a853; }
+      .btn-green:hover { background-color: #2d8e47; }
+      .btn-red { background-color: #c5221f; }
+      .btn-red:hover { background-color: #a51d19; }
+      .btn-dark { background-color: #5f6368; }
+      .btn-dark:hover { background-color: #3c4043; }
+
+      /* Status */
+      #status { padding: 10px; border-radius: 6px; font-size: 11px; margin-top: 12px; display: none; line-height: 1.4; }
+      .sucesso { background-color: #e6f4ea; color: #137333; border: 1px solid #ceead6; }
+      .erro { background-color: #fce8e6; color: #c5221f; border: 1px solid #fad2cf; }
+      .processando { background-color: #e8f0fe; color: #1a73e8; border: 1px solid #d2e3fc; }
+    </style>
+  </head>
+  <body>
+
+    <!-- Header Executivo TOTVS -->
+    <div class="banner-header">
+      <div>
+        <div class="banner-title">📈 Dashboard Executivo & Agente Tempo API</div>
+        <div class="banner-subtitle">Gestão unificada de Apontamento de Horas, Férias e Metas do Time</div>
+      </div>
+      <div class="badge-conexao">💻 Conectado: Jira Produção TOTVS</div>
+    </div>
+
+    <!-- Navegação por Abas -->
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="trocarAba('abaResumo', this)">📊 Resumo Devs</button>
+      <button class="tab-btn" onclick="trocarAba('abaPendentes', this)">⚠️ Horas Pendentes</button>
+      <button class="tab-btn" onclick="trocarAba('abaConfig', this)">⚙️ Filtros e Configurações</button>
+    </div>
+
+    <!-- Cards KPI (5 Colunas) -->
+    <div class="grid-kpis">
+      <div class="card-kpi" style="border-left: 4px solid #5f6368;">
+        <div class="kpi-title">Meta Esperada</div>
+        <div class="kpi-value" id="kpiEsperado" style="color: #5f6368;">-- h</div>
+      </div>
+      <div class="card-kpi" style="border-left: 4px solid #1a73e8;">
+        <div class="kpi-title">Total Apontado</div>
+        <div class="kpi-value" id="kpiApontado" style="color: #1a73e8;">-- h</div>
+      </div>
+      <div class="card-kpi" style="border-left: 4px solid #34a853;">
+        <div class="kpi-title">Progresso da Meta</div>
+        <div class="kpi-value" id="kpiProgresso" style="color: #34a853;">-- %</div>
+      </div>
+      <div class="card-kpi" style="border-left: 4px solid #e65100;">
+        <div class="kpi-title">% Não Produtividade</div>
+        <div class="kpi-value" id="kpiNaoProdutividade" style="color: #e65100;">-- %</div>
+      </div>
+      <div class="card-kpi" style="border-left: 4px solid #c5221f;">
+        <div class="kpi-title">Devs c/ Pendência</div>
+        <div class="kpi-value" id="kpiPendentes" style="color: #c5221f;">--</div>
+      </div>
+    </div>
+
+    <!-- Aba 1: Resumo Devs -->
+    <div id="abaResumo" class="tab-content active">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h4 style="margin: 0; color: #0f2b48;">📊 Balanço Geral do Mês por Colaborador</h4>
+        <div class="btn-group-top">
+          <button class="btn-main btn-green" onclick="atualizarDados()">🔄 Recarregar Dados da API</button>
+          <button class="btn-main btn-red" onclick="dispararAlertasDevsManualmente()">🚀 Disparar Alertas para os Devs</button>
+        </div>
+      </div>
+      <table id="tabelaResumo">
+        <thead>
+          <tr>
+            <th>Colaborador</th>
+            <th>E-mail</th>
+            <th style="text-align: center;">Férias</th>
+            <th style="text-align: center;">Ausência</th>
+            <th style="text-align: center;">Esperado</th>
+            <th style="text-align: center;">Apontado</th>
+            <th style="text-align: center;">Saldo</th>
+            <th style="text-align: center;">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="8" style="text-align: center; color: #70757a;">Carregando dados...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Aba 2: Horas Pendentes -->
+    <div id="abaPendentes" class="tab-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h4 style="margin: 0; color: #c5221f;">⚠️ Relação de Dias sem Apontamento Suficiente</h4>
+        <button class="btn-main btn-red" onclick="dispararAlertasDevsManualmente()">🚀 Cobrar Devs com Pendência</button>
+      </div>
+      <table id="tabelaPendentes">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Colaborador</th>
+            <th>E-mail</th>
+            <th style="text-align: center;">Horas Apontadas</th>
+            <th style="text-align: center;">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="5" style="text-align: center; color: #70757a;">Carregando registros...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Aba 3: Configurações -->
+    <div id="abaConfig" class="tab-content">
+      <h4 style="margin: 0 0 12px 0; color: #0f2b48;">⚙️ Parâmetros do Sistema e Conexão Jira</h4>
+      <div class="form-grid">
+        <div>
+          <label>Mês Inicial:</label>
+          <input type="month" id="mesDe">
+        </div>
+        <div>
+          <label>Mês Final:</label>
+          <input type="month" id="mesAte">
+        </div>
+        <div>
+          <label>Carga Mínima (Horas/Dia):</label>
+          <input type="number" id="horaMinima" value="6">
+        </div>
+      </div>
+      <div class="form-grid" style="margin-top: 10px;">
+        <div>
+          <label>URL Base do Jira:</label>
+          <input type="text" id="jiraBaseUrl">
+        </div>
+        <div>
+          <label>Team ID (Tempo):</label>
+          <input type="number" id="teamId">
+        </div>
+        <div>
+          <label>E-mail do Líder (TL):</label>
+          <input type="text" id="emailLider">
+        </div>
+      </div>
+      <div style="margin-top: 10px;">
+        <label>Token API Jira/Tempo:</label>
+        <input type="password" id="jiraToken">
+      </div>
+      <div class="btn-group">
+        <button class="btn-main btn-dark" onclick="salvarConfiguracoes()">💾 Salvar Configurações</button>
+        <button class="btn-main btn-blue" onclick="chamarScript('executarRelatorioDiario17h', 'Enviando relatório diário por e-mail...')">📧 Disparar E-mail Diário Líder</button>
+        <button class="btn-main btn-red" onclick="chamarScript('testarEnvioApenasParaLider', 'Enviando e-mails de teste para o Líder...')">🧪 Testar Disparos (Somente Líder)</button>
+      </div>
+    </div>
+
+    <div id="status"></div>
+
+    <script>
+      window.onload = function() {
+        carregarConfiguracoes();
+        atualizarDados();
+      };
+
+      function trocarAba(idAba, btn) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(idAba).classList.add('active');
+        btn.classList.add('active');
+      }
+
+      function setStatus(msg, tipo) {
+        const s = document.getElementById('status');
+        s.className = tipo;
+        s.innerHTML = msg;
+        s.style.display = 'block';
+      }
+
+      function carregarConfiguracoes() {
+        google.script.run.withSuccessHandler(cfg => {
+          document.getElementById('jiraBaseUrl').value = cfg.jiraBaseUrl || '';
+          document.getElementById('teamId').value = cfg.teamId || '';
+          document.getElementById('jiraToken').value = cfg.jiraToken || '';
+          document.getElementById('emailLider').value = cfg.emailLider || '';
+          document.getElementById('horaMinima').value = cfg.horaMinima || '6';
+          document.getElementById('mesDe').value = cfg.mesDe || '';
+          document.getElementById('mesAte').value = cfg.mesAte || '';
+        }).obterConfiguracoesAtuais();
+      }
+
+      function salvarConfiguracoes() {
+        setStatus('Salvando configurações...', 'processando');
+        const config = {
+          jiraBaseUrl: document.getElementById('jiraBaseUrl').value,
+          teamId: document.getElementById('teamId').value,
+          jiraToken: document.getElementById('jiraToken').value,
+          emailLider: document.getElementById('emailLider').value,
+          horaMinima: document.getElementById('horaMinima').value,
+          mesDe: document.getElementById('mesDe').value,
+          mesAte: document.getElementById('mesAte').value
+        };
+        google.script.run.withSuccessHandler(r => setStatus(r.mensagem, r.sucesso ? 'sucesso' : 'erro')).salvarConfiguracoesPelaInterface(config);
+      }
+
+      function atualizarDados() {
+        setStatus('Atualizando dados e sincronizando com a API do Tempo...', 'processando');
+        google.script.run.withSuccessHandler(res => {
+          setStatus(res.mensagem, 'sucesso');
+          renderizarKPIsETabelas(res);
+        }).withFailureHandler(e => setStatus('Erro: ' + e, 'erro')).extrairEGravarNaPlanilha();
+      }
+
+      function dispararAlertasDevsManualmente() {
+        if (!confirm('Deseja realmente disparar os e-mails de cobrança oficiais para todos os desenvolvedores pendentes com cópia para você?')) {
+          return;
+        }
+        setStatus('Enviando e-mails oficiais de cobrança para os desenvolvedores...', 'processando');
+        google.script.run.withSuccessHandler(r => setStatus(r.mensagem, r.sucesso ? 'sucesso' : 'erro'))
+          .withFailureHandler(e => setStatus('Erro ao enviar: ' + e, 'erro'))
+          .executarFuncaoPeloPainel('executarVerificacaoEAlertaSemanais');
+      }
+
+      function renderizarKPIsETabelas(res) {
+        const resumoDevs = res.resumoDevs || [];
+        const registros = res.registros || [];
+
+        let totalEsp = 0, totalApo = 0, totalAus = 0, countPend = 0, totalDiasUteisTime = 0;
+        let htmlResumo = '';
+
+        resumoDevs.forEach(d => {
+          totalEsp += d.horasEsperadas;
+          totalApo += d.horasApontadas;
+          totalAus += d.horasAusencia + (d.diasFerias * 6); // Considera 6h por dia de férias integral
+          totalDiasUteisTime += d.diasUteisMeta;
+          if (d.statusGeral === 'PENDENTE') countPend++;
+
+          const eOk = d.statusGeral === 'OK';
+          htmlResumo += `
+            <tr>
+              <td><b>${d.nome}</b></td>
+              <td>${d.email}</td>
+              <td style="text-align: center;">${d.diasFerias > 0 ? d.diasFerias + 'd' : '-'}</td>
+              <td style="text-align: center; color: #e67c73;">${d.horasAusencia > 0 ? d.horasAusencia.toFixed(2) + 'h' : '-'}</td>
+              <td style="text-align: center;">${d.horasEsperadas.toFixed(2)}h</td>
+              <td style="text-align: center; color: #1a73e8; font-weight: bold;">${d.horasApontadas.toFixed(2)}h</td>
+              <td style="text-align: center; font-weight: bold; color: ${d.saldoHoras >= 0 ? '#137333' : '#c5221f'};">${d.saldoHoras > 0 ? '+' : ''}${d.saldoHoras.toFixed(2)}h</td>
+              <td style="text-align: center;"><span style="background: ${eOk ? '#e6f4ea' : '#fce8e6'}; color: ${eOk ? '#137333' : '#c5221f'}; padding: 3px 8px; border-radius: 10px; font-weight: bold; font-size: 10px;">${d.statusGeral}</span></td>
+            </tr>
+          `;
+        });
+
+        const metaBrutaTotal = totalDiasUteisTime * 6; // Meta total teórica sem descontos
+        const percNaoProdutividade = metaBrutaTotal > 0 ? (totalAus / metaBrutaTotal) * 100 : 0;
+
+        document.getElementById('kpiEsperado').innerText = totalEsp.toFixed(1) + ' h';
+        document.getElementById('kpiApontado').innerText = totalApo.toFixed(1) + ' h';
+        document.getElementById('kpiProgresso').innerText = (totalEsp > 0 ? Math.min(100, (totalApo/totalEsp)*100) : 0).toFixed(1) + ' %';
+        document.getElementById('kpiNaoProdutividade').innerText = percNaoProdutividade.toFixed(1) + ' %';
+        document.getElementById('kpiPendentes').innerText = countPend;
+        document.querySelector('#tabelaResumo tbody').innerHTML = htmlResumo;
+
+        let htmlPend = '';
+        registros.filter(r => r.status === 'PENDENTE').forEach(r => {
+          htmlPend += `
+            <tr>
+              <td>${r.dataBr}</td>
+              <td><b>${r.nome}</b></td>
+              <td>${r.email}</td>
+              <td style="text-align: center; font-weight: bold; color: #c5221f;">${r.horas.toFixed(2)}h</td>
+              <td style="text-align: center;"><span style="background: #fce8e6; color: #c5221f; padding: 3px 8px; border-radius: 10px; font-weight: bold; font-size: 10px;">PENDENTE</span></td>
+            </tr>
+          `;
+        });
+
+        document.querySelector('#tabelaPendentes tbody').innerHTML = htmlPend || '<tr><td colspan="5" style="text-align: center; color: #137333; font-weight: bold;">🎉 Nenhuma pendência encontrada!</td></tr>';
+      }
+
+      function chamarScript(fn, msg) {
+        setStatus(msg, 'processando');
+        google.script.run.withSuccessHandler(r => setStatus(r.mensagem, r.sucesso ? 'sucesso' : 'erro')).executarFuncaoPeloPainel(fn);
+      }
+    </script>
+  </body>
+</html>
