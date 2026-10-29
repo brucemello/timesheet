@@ -29,6 +29,7 @@ function onOpen(e) {
     .addItem('📧 Disparar Relatório Diário 17h (Manual)', 'executarRelatorioDiario17h')
     .addItem('🚀 Executar Alertas Semanal Devs (Manual)', 'executarDisparoSemanalOficial')
     .addItem('👤 Gerar/Verificar Aba DePara_Usuarios', 'criarAbaDeParaManualmente')
+    .addItem('🏖️ Conferir Ausências e Férias Lidas', 'testarIntegracaoAusenciasEAgenda')
     .addItem('⏰ Reconfigurar Gatilhos Automáticos', 'configurarGatilhosAutomaticos')
     .addToUi();
 
@@ -170,209 +171,7 @@ function carregarMapaUsuarios_(ss) {
   return mapa;
 }
 
-/********************************************************************************
- * BUSCA E CONSOLIDAÇÃO DE AUSÊNCIAS (FÉRIAS EXTERNAS + AGENDA + ABA LOCAL)
- ********************************************************************************/
-function carregarAusencias_(ss) {
-  const ausencias = [];
-
-  // 1. CARREGA FÉRIAS DA PLANILHA EXTERNA (CONTRATOS/FÉRIAS CONSOLIDADO)
-  try {
-    const planilhaExterna = SpreadsheetApp.openByUrl(URL_PLANILHA_FERIAS);
-    const abaFerias = planilhaExterna.getSheetByName('Controle Consolidado - 2026');
-
-    if (abaFerias && abaFerias.getLastRow() > 1) {
-      const dadosFerias = abaFerias.getRange(2, 1, abaFerias.getLastRow() - 1, 12).getValues();
-
-      dadosFerias.forEach(linha => {
-        const nomeDev = String(linha[1] || '').trim().toLowerCase();
-        const situacao = String(linha[4] || '').trim().toLowerCase();
-        const agendamento = String(linha[7] || '').trim().toLowerCase();
-        
-        const eValido = situacao.includes('marcadas') || 
-                        situacao.includes('em gozo') || 
-                        agendamento.includes('agendado');
-
-        if (nomeDev && eValido) {
-          const inicio = converterParaData_(linha[9]);
-          const fim = converterParaData_(linha[10]);
-
-          if (inicio && fim) {
-            ausencias.push({
-              identificador: nomeDev,
-              titulo: 'Programação Oficial de Férias',
-              inicio: zerarHora_(inicio),
-              fim: zerarHora_(fim),
-              eDiaInteiro: true,
-              horarioTexto: 'Dia Inteiro',
-              horasAbatimento: 0,
-              tipo: 'FÉRIAS'
-            });
-          }
-        }
-      });
-    }
-  } catch (erro) {
-    Logger.log('⚠️ Aviso: Não foi possível acessar a planilha externa de férias: ' + erro.toString());
-  }
-
-  // 2. CARREGA AUSÊNCIAS AUTOMÁTICAS DA PLANILHA "AGENDAMENTO AUSENCIAS"
-  try {
-    const planilhaAgenda = SpreadsheetApp.openByUrl(URL_PLANILHA_AGENDA_AUSENCIAS);
-    const abaAgenda = planilhaAgenda.getSheetByName('Página1') || planilhaAgenda.getSheets()[0];
-
-    if (abaAgenda && abaAgenda.getLastRow() > 1) {
-      const dadosExibidos = abaAgenda.getRange(2, 1, abaAgenda.getLastRow() - 1, 7).getDisplayValues();
-
-      dadosExibidos.forEach(linhaTxt => {
-        const titulo = String(linhaTxt[0] || '').trim();
-        const criador = String(linhaTxt[1] || '').trim();
-        const dataInicio = converterParaData_(linhaTxt[2]);
-        const horaInicioTxt = String(linhaTxt[3] || '').trim();
-        const dataFim = converterParaData_(linhaTxt[4]);
-        const horaFimTxt = String(linhaTxt[5] || '').trim();
-
-        const identificador = criador || titulo;
-
-        if (identificador && dataInicio) {
-          const dataTerminoEfetiva = dataFim || dataInicio;
-          let eDiaInteiro = horaInicioTxt.toLowerCase().includes('dia inteiro') || 
-                            horaFimTxt.toLowerCase().includes('dia inteiro');
-          let horasAbatimento = 0;
-
-          if (!eDiaInteiro) {
-            horasAbatimento = calcularDiferencaHoras_(horaInicioTxt, horaFimTxt);
-          }
-
-          ausencias.push({
-            identificador: identificador.toLowerCase(),
-            titulo: titulo || 'Ausência Agendada',
-            inicio: zerarHora_(dataInicio),
-            fim: zerarHora_(dataTerminoEfetiva),
-            eDiaInteiro: eDiaInteiro,
-            horarioTexto: eDiaInteiro ? 'Dia Inteiro' : `${horaInicioTxt} às ${horaFimTxt}`,
-            horasAbatimento: horasAbatimento,
-            tipo: 'AGENDA_AUSENCIA'
-          });
-        }
-      });
-      Logger.log(`✅ ${ausencias.length} registros de ausências/férias consolidados.`);
-    }
-  } catch (erro) {
-    Logger.log('⚠️ Aviso: Não foi possível acessar a planilha de Agendamento de Ausências: ' + erro.toString());
-  }
-
-  // 3. CARREGA AUSÊNCIAS MANUAIS DA ABA LOCAL 'Ausencias'
-  const abaLocal = ss.getSheetByName('Ausencias');
-  if (abaLocal && abaLocal.getLastRow() > 1) {
-    const dadosLocais = abaLocal.getRange(2, 1, abaLocal.getLastRow() - 1, 4).getValues();
-    dadosLocais.forEach(linha => {
-      const ident = String(linha[0] || '').trim().toLowerCase();
-      const inicio = converterParaData_(linha[1]);
-      const fim = converterParaData_(linha[2]);
-      if (ident && inicio && fim) {
-        ausencias.push({
-          identificador: ident,
-          titulo: 'Ausência Registrada Localmente',
-          inicio: zerarHora_(inicio),
-          fim: zerarHora_(fim),
-          eDiaInteiro: true,
-          horarioTexto: 'Dia Inteiro',
-          horasAbatimento: 0,
-          tipo: 'AUSÊNCIA'
-        });
-      }
-    });
-  }
-
-  return ausencias;
-}
-
-/********************************************************************************
- * FUNÇÕES AUXILIARES DE CÁLCULO E VALIDAÇÃO DE AUSÊNCIAS
- ********************************************************************************/
-
-/**
- * Calcula a diferença em horas decimais entre dois horários ou objetos Date
- */
-function calcularDiferencaHoras_(valIni, valFim) {
-  try {
-    let minIni = -1;
-    let minFim = -1;
-
-    if (valIni instanceof Date && valFim instanceof Date) {
-      const tz = Session.getScriptTimeZone();
-      const hIni = parseInt(Utilities.formatDate(valIni, tz, 'HH'), 10);
-      const mIni = parseInt(Utilities.formatDate(valIni, tz, 'mm'), 10);
-      const hFim = parseInt(Utilities.formatDate(valFim, tz, 'HH'), 10);
-      const mFim = parseInt(Utilities.formatDate(valFim, tz, 'mm'), 10);
-
-      minIni = hIni * 60 + mIni;
-      minFim = hFim * 60 + mFim;
-    } else {
-      const strIni = String(valIni || '').trim();
-      const strFim = String(valFim || '').trim();
-
-      const regexHora = /(\d{1,2}):(\d{2})/;
-      const matchIni = strIni.match(regexHora);
-      const matchFim = strFim.match(regexHora);
-
-      if (matchIni && matchFim) {
-        minIni = parseInt(matchIni[1], 10) * 60 + parseInt(matchIni[2], 10);
-        minFim = parseInt(matchFim[1], 10) * 60 + parseInt(matchFim[2], 10);
-      }
-    }
-
-    if (minIni >= 0 && minFim > minIni) {
-      const diffMin = minFim - minIni;
-      return Number((diffMin / 60).toFixed(2));
-    }
-  } catch (e) {
-    Logger.log('Erro ao calcular diferença de horas: ' + e.toString());
-  }
-  return 0;
-}
-
-/**
- * Avalia se o analista possui ausências no dia e retorna a meta diária ajustada
- */
-function avaliarStatusEAusenciaDev_(emailDev, nomeDev, dataObj, ausencias, horaMinimaPadrao) {
-  const dataRef = zerarHora_(dataObj).getTime();
-  const emailLower = removerAcentos_(emailDev.toLowerCase().split('@')[0]);
-  const nomeLower = removerAcentos_(nomeDev.toLowerCase());
-
-  let eDiaInteiro = false;
-  let totalHorasAbatidas = 0;
-  const eventosAuditoria = [];
-
-  ausencias.forEach(item => {
-    const identLower = removerAcentos_(item.identificador.toLowerCase());
-    const partesIdent = identLower.split(' ').filter(p => p.length > 2 && p !== 'dos' && p !== 'das');
-    
-    const casouPorPartes = partesIdent.length >= 1 && partesIdent.every(p => emailLower.includes(p) || nomeLower.includes(p));
-    const casouDireto = emailLower.includes(identLower) || nomeLower.includes(identLower) || identLower.includes(emailLower);
-    const periodoValido = dataRef >= item.inicio.getTime() && dataRef <= item.fim.getTime();
-
-    if ((casouPorPartes || casouDireto) && periodoValido) {
-      eventosAuditoria.push(item);
-
-      if (item.eDiaInteiro) {
-        eDiaInteiro = true;
-      } else {
-        totalHorasAbatidas += item.horasAbatimento;
-      }
-    }
-  });
-
-  const cargaEsperadaNoDia = eDiaInteiro ? 0 : Math.max(0, horaMinimaPadrao - totalHorasAbatidas);
-
-  return {
-    eDiaInteiro: eDiaInteiro,
-    horasAbatidas: Number(totalHorasAbatidas.toFixed(2)),
-    cargaEsperadaNoDia: Number(cargaEsperadaNoDia.toFixed(2)),
-    eventosAuditoria: eventosAuditoria
-  };
-}
+/* Ausências, férias, folgas e feriados: ver Ausencias.js */
 
 /********************************************************************************
  * EXTRAÇÃO E SALVAMENTO COM TRATAMENTO DE AUSÊNCIAS (FÉRIAS + AUDITORIA DE AGENDA)
@@ -380,7 +179,7 @@ function avaliarStatusEAusenciaDev_(emailDev, nomeDev, dataObj, ausencias, horaM
 function extrairEGravarNaPlanilha() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const mapaUsuarios = carregarMapaUsuarios_(ss);
-  const ausencias = carregarAusencias_(ss);
+  const feriados = carregarFeriados_(ss);
 
   const cfg = obterConfiguracoesAtuais();
   if (!cfg.jiraToken) throw new Error('Token da API não configurado no Painel.');
@@ -435,11 +234,13 @@ function extrairEGravarNaPlanilha() {
     });
   }
 
+  const hojeIso = formatarDataISO_(new Date());
   const diasUteis = [];
   let cursor = new Date(periodo.inicio);
   while (cursor <= periodo.fim) {
-    if (cursor.getDay() !== 0 && cursor.getDay() !== 6) {
-      diasUteis.push(formatarDataISO_(cursor));
+    const iso = formatarDataISO_(cursor);
+    if (cursor.getDay() !== 0 && cursor.getDay() !== 6 && !feriados.has(iso)) {
+      diasUteis.push(iso);
     }
     cursor.setDate(cursor.getDate() + 1);
   }
@@ -450,15 +251,17 @@ function extrairEGravarNaPlanilha() {
     return nomeA.localeCompare(nomeB);
   });
 
+  const ausencias = carregarAusencias_(ss, listaEmailsOrdenados.map(e => ({ email: e, nome: infoDevs[e] || e })));
+
   const registrosProcessados = [];
   const resumoConsolidadoDevs = [];
   const pendenciasDetalhadas = [];
   const matrizAuditoria = [
-    ['Data', 'Dev / Analista', 'E-mail', 'Tipo Ausência', 'Título / Motivo Evento', 'Horário Registrado', 'Abatimento / Horas']
+    ['Data', 'Dev / Analista', 'E-mail', 'Tipo Ausência', 'Título / Motivo Evento', 'Horário Registrado', 'Abatimento / Horas', 'Origem']
   ];
 
   const matrizExtracao = [
-    ['Data', 'Dev / Analista', 'E-mail', 'Total Horas no Dia', `Status (Mín. ${horaMinimaNum}h)`]
+    ['Data', 'Dev / Analista', 'E-mail', 'Total Horas no Dia', `Status (Mín. ${horaMinimaNum}h)`, 'Meta do Dia', 'Ausência Considerada']
   ];
 
   listaEmailsOrdenados.forEach(email => {
@@ -473,13 +276,14 @@ function extrairEGravarNaPlanilha() {
     let horasEsperadasDevTotal = 0;
 
     diasUteis.forEach(dataIso => {
-      const dataObj = converterParaData_(dataIso) || new Date(dataIso + 'T00:00:00');
+      const dataObj = lerDataAus_(dataIso);
       const avaliacao = avaliarStatusEAusenciaDev_(email, nome, dataObj, ausencias, horaMinimaNum);
+      const ehHoje = dataIso >= hojeIso; // dia em andamento: mostra, mas não cobra
 
       const chaveAgrupamento = `${email}|${dataIso}`;
       const totalHorasDia = horasPorDevDia[chaveAgrupamento] || 0;
       totalHorasApontadasDev += totalHorasDia;
-      totalHorasAusenciaAbatidas += avaliacao.horasAbatidas;
+      if (!ehHoje) totalHorasAusenciaAbatidas += avaliacao.horasAbatidas;
 
       // Alimenta dados para a aba de Auditoria
       if (avaliacao.eventosAuditoria && avaliacao.eventosAuditoria.length > 0) {
@@ -491,7 +295,8 @@ function extrairEGravarNaPlanilha() {
             evt.tipo,
             evt.titulo,
             evt.horarioTexto,
-            evt.eDiaInteiro ? 'Dia Inteiro' : Number(evt.horasAbatimento.toFixed(2))
+            evt.eDiaInteiro ? 'Dia Inteiro' : Number(evt.horasAbatimento.toFixed(2)),
+            evt.origem || ''
           ]);
         });
       }
@@ -500,7 +305,9 @@ function extrairEGravarNaPlanilha() {
 
       if (avaliacao.eDiaInteiro) {
         status = 'FÉRIAS / AUSÊNCIA';
-        diasFeriasDev++;
+        if (!ehHoje) diasFeriasDev++;
+      } else if (ehHoje) {
+        status = totalHorasDia >= avaliacao.cargaEsperadaNoDia ? 'OK' : 'EM ANDAMENTO';
       } else {
         horasEsperadasDevTotal += avaliacao.cargaEsperadaNoDia;
         if (totalHorasDia >= avaliacao.cargaEsperadaNoDia) {
@@ -508,7 +315,8 @@ function extrairEGravarNaPlanilha() {
         }
       }
 
-      matrizExtracao.push([dataIso, nome, email, Number(totalHorasDia.toFixed(2)), status]);
+      matrizExtracao.push([dataIso, nome, email, Number(totalHorasDia.toFixed(2)), status,
+        avaliacao.cargaEsperadaNoDia, descreverAusenciaDia_(avaliacao)]);
       registrosProcessados.push({ 
         dataIso: dataIso, 
         dataBr: formatarDataBR_(dataObj), 
@@ -519,7 +327,7 @@ function extrairEGravarNaPlanilha() {
       });
 
       if (status === 'PENDENTE') {
-        pendenciasDetalhadas.push([dataIso, nome, email, Number(totalHorasDia.toFixed(2)), 'PENDENTE']);
+        pendenciasDetalhadas.push([dataIso, nome, email, Number(totalHorasDia.toFixed(2)), 'PENDENTE', avaliacao.cargaEsperadaNoDia, descreverAusenciaDia_(avaliacao)]);
       }
     });
 
@@ -528,7 +336,7 @@ function extrairEGravarNaPlanilha() {
     resumoConsolidadoDevs.push({
       nome: nome,
       email: email,
-      diasUteisMeta: diasUteis.length,
+      diasUteisMeta: diasUteis.filter(d => d < hojeIso).length,
       diasFerias: diasFeriasDev,
       horasAusencia: Number(totalHorasAusenciaAbatidas.toFixed(2)),
       horasEsperadas: Number(horasEsperadasDevTotal.toFixed(2)),
@@ -546,7 +354,7 @@ function extrairEGravarNaPlanilha() {
     abaResumo.clear();
   }
   
-  const matrizResumo = [['Dev / Analista', 'E-mail', 'Dias Úteis (Até Hoje)', 'Dias Férias/Ausência', 'Horas Ausência (Abatidas)', 'Horas Esperadas', 'Horas Apontadas', 'Saldo (Horas)', 'Status Geral']];
+  const matrizResumo = [['Dev / Analista', 'E-mail', 'Dias Úteis (Até Ontem)', 'Dias Férias/Ausência', 'Horas Ausência (Abatidas)', 'Horas Esperadas', 'Horas Apontadas', 'Saldo (Horas)', 'Status Geral']];
   resumoConsolidadoDevs.forEach(d => {
     matrizResumo.push([d.nome, d.email, d.diasUteisMeta, d.diasFerias, d.horasAusencia, d.horasEsperadas, d.horasApontadas, d.saldoHoras, d.statusGeral]);
   });
@@ -565,7 +373,7 @@ function extrairEGravarNaPlanilha() {
     abaPendentes.clear();
   }
 
-  const matrizPendentes = [['Data', 'Dev / Analista', 'E-mail', 'Total Horas no Dia', 'Status']];
+  const matrizPendentes = [['Data', 'Dev / Analista', 'E-mail', 'Total Horas no Dia', 'Status', 'Meta do Dia', 'Ausência Considerada']];
   pendenciasDetalhadas.forEach(p => matrizPendentes.push(p));
 
   abaPendentes.getRange(1, 1, matrizPendentes.length, matrizPendentes[0].length).setValues(matrizPendentes);
@@ -606,7 +414,10 @@ function extrairEGravarNaPlanilha() {
   abaExtracao.autoResizeColumns(1, matrizExtracao[0].length);
 
   return {
-    mensagem: `Sucesso! Abas 'Resumo_Mensal_Devs', 'Horas_Pendentes', 'Auditoria_Ausencias' e 'Extracao_Tempo' geradas com sucesso.`,
+    mensagem: `Sucesso! Abas 'Resumo_Mensal_Devs', 'Horas_Pendentes', 'Auditoria_Ausencias' e 'Extracao_Tempo' geradas com sucesso. ` +
+      `${ausencias.registros.length} ausência(s)/férias consideradas.` +
+      (ausencias.naoVinculados.length ? ` Sem colaborador identificado (cadastre o apelido na coluna D da DePara_Usuarios): ${ausencias.naoVinculados.join(', ')}.` : '') +
+      (ausencias.avisos.length ? ` Avisos: ${ausencias.avisos.join(' | ')}` : ''),
     registros: registrosProcessados,
     resumoDevs: resumoConsolidadoDevs,
     periodoIso: `${periodo.dataDeIso} a ${periodo.dataAteIso}`
@@ -651,6 +462,9 @@ function aplicarCoresStatusDiario_(aba, totalLinhas) {
     if (linha[0] === 'OK') {
       coresFundo.push(['#e6f4ea']);
       coresTexto.push(['#137333']);
+    } else if (linha[0] === 'EM ANDAMENTO') {
+      coresFundo.push(['#fef7e0']);
+      coresTexto.push(['#b06000']);
     } else if (linha[0].includes('FÉRIAS') || linha[0].includes('AUSÊNCIA')) {
       coresFundo.push(['#e8f0fe']);
       coresTexto.push(['#1a73e8']);
@@ -895,28 +709,6 @@ function executarVerificacaoEAlertaSemanais(somenteLider = false) {
     : `Alertas oficiais enviados com sucesso para ${pendenciasPorDev.length} dev(s) com cópia para o líder!`;
 }
 
-function configurarGatilhosAutomaticos() {
-  const gatilhos = ScriptApp.getProjectTriggers();
-  gatilhos.forEach(t => {
-    const nomeFn = t.getHandlerFunction();
-    if (nomeFn === 'executarRelatorioDiario17h' || 
-        nomeFn === 'executarVerificacaoEAlertaSemanais' || 
-        nomeFn === 'executarDisparoSemanalOficial') {
-      ScriptApp.deleteTrigger(t);
-    }
-  });
-
-  ScriptApp.newTrigger('executarRelatorioDiario17h').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(17).create();
-  ScriptApp.newTrigger('executarRelatorioDiario17h').timeBased().onWeekDay(ScriptApp.WeekDay.TUESDAY).atHour(17).create();
-  ScriptApp.newTrigger('executarRelatorioDiario17h').timeBased().onWeekDay(ScriptApp.WeekDay.WEDNESDAY).atHour(17).create();
-  ScriptApp.newTrigger('executarRelatorioDiario17h').timeBased().onWeekDay(ScriptApp.WeekDay.THURSDAY).atHour(17).create();
-  ScriptApp.newTrigger('executarRelatorioDiario17h').timeBased().onWeekDay(ScriptApp.WeekDay.FRIDAY).atHour(17).create();
-
-  ScriptApp.newTrigger('executarDisparoSemanalOficial').timeBased().onWeekDay(ScriptApp.WeekDay.FRIDAY).atHour(14).create();
-
-  Logger.log('✅ Gatilhos automáticos configurados com sucesso!');
-}
-
 function buscarWorklogsTempoAPI_(dataDe, dataAte, cfg) {
   let url = `${cfg.jiraBaseUrl}/rest/tempo-timesheets/4/worklogs/search`;
   let payload = JSON.stringify({ from: dataDe, to: dataAte, teamId: [parseInt(cfg.teamId, 10)] });
@@ -956,7 +748,6 @@ function calcularPendenciasDevs_(worklogs, dataInicio, dataFim, cfg) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const mapaUsuarios = carregarMapaUsuarios_(ss);
   const feriados = carregarFeriados_(ss);
-  const ausencias = carregarAusencias_(ss);
   const horaMinimaNum = parseFloat(cfg.horaMinima) || 6;
 
   const horasPorDevDia = {};
@@ -992,6 +783,14 @@ function calcularPendenciasDevs_(worklogs, dataInicio, dataFim, cfg) {
     }
   });
 
+  // Devs da DePara entram mesmo sem nenhum apontamento no período
+  Object.keys(mapaUsuarios).forEach(chave => {
+    const item = mapaUsuarios[chave];
+    if (item.email && item.nome && !nomesDevs[item.email]) nomesDevs[item.email] = item.nome;
+  });
+  const ausencias = carregarAusencias_(ss, Object.keys(nomesDevs).map(e => ({ email: e, nome: nomesDevs[e] })));
+  const hojeIso = formatarDataISO_(new Date());
+
   const diasUteis = [];
   let cursor = new Date(dataInicio);
   while (cursor <= dataFim) {
@@ -1009,7 +808,7 @@ function calcularPendenciasDevs_(worklogs, dataInicio, dataFim, cfg) {
 
     diasUteis.forEach(dataObj => {
       const dataChave = formatarDataISO_(dataObj);
-      if (feriados.has(dataChave)) return;
+      if (feriados.has(dataChave) || dataChave >= hojeIso) return; // feriado ou dia ainda em andamento
 
       const avaliacao = avaliarStatusEAusenciaDev_(emailDev, nomeDev, dataObj, ausencias, horaMinimaNum);
 
@@ -1019,7 +818,7 @@ function calcularPendenciasDevs_(worklogs, dataInicio, dataFim, cfg) {
       const horas = horasPorDevDia[chave] || 0;
 
       if (horas < avaliacao.cargaEsperadaNoDia) {
-        pendencias.push({ data: formatarDataBR_(dataObj), horas: horas });
+        pendencias.push({ data: formatarDataBR_(dataObj), horas: horas, meta: avaliacao.cargaEsperadaNoDia, ausencia: descreverAusenciaDia_(avaliacao) });
       }
     });
 
@@ -1029,18 +828,6 @@ function calcularPendenciasDevs_(worklogs, dataInicio, dataFim, cfg) {
   });
 
   return pendenciasPorDev;
-}
-
-function carregarFeriados_(ss) {
-  const feriados = new Set();
-  const aba = ss.getSheetByName('Feriados');
-  if (!aba) return feriados;
-  const dados = aba.getDataRange().getValues();
-  for (let i = 1; i < dados.length; i++) {
-    const dt = converterParaData_(dados[i][0]);
-    if (dt) feriados.add(formatarDataISO_(dt));
-  }
-  return feriados;
 }
 
 function extrairIdentificadoresColaborador_(wl) {
@@ -1070,6 +857,8 @@ function montarEmailIndividualDev_(item, horaMinima) {
       <td style="padding:8px;border:1px solid #ddd;text-align:center;font-weight:bold;${p.horas === 0 ? 'background:#f8d7da;color:#721c24;' : 'background:#fff3cd;color:#856404;'}">
         ${p.horas.toFixed(2).replace('.', ',')}h
       </td>
+      <td style="padding:8px;border:1px solid #ddd;text-align:center;">${formatarHorasEmail_(p.meta, horaMinima)}</td>
+      <td style="padding:8px;border:1px solid #ddd;font-size:12px;color:#555;">${p.ausencia || '-'}</td>
     </tr>
   `).join('');
 
@@ -1083,15 +872,22 @@ function montarEmailIndividualDev_(item, horaMinima) {
           <tr style="background:#f3f3f3;">
             <th style="padding:8px;border:1px solid #ddd;text-align:left;">Data</th>
             <th style="padding:8px;border:1px solid #ddd;text-align:center;">Horas Apontadas</th>
+            <th style="padding:8px;border:1px solid #ddd;text-align:center;">Meta do Dia</th>
+            <th style="padding:8px;border:1px solid #ddd;text-align:left;">Ausência considerada</th>
           </tr>
         </thead>
         <tbody>${linhas}</tbody>
       </table>
       <p style="margin-top:15px;font-size:12px;color:#666;">
-        <i>Se você esteve de férias, folga ou feriado nestas datas, desconsidere este lembrete.</i>
+        <i>Férias, folgas, feriados e ausências da agenda do time já foram descontados da meta. Se faltou registrar alguma ausência na agenda, avise o seu líder.</i>
       </p>
     </div>
   `;
+}
+
+function formatarHorasEmail_(meta, horaMinima) {
+  const v = meta == null ? parseFloat(horaMinima) || 0 : meta;
+  return v.toFixed(2).replace('.', ',') + 'h';
 }
 
 function montarEmailConsolidadoLider_(devs, dataDe, dataAte, horaMinima) {
@@ -1102,10 +898,12 @@ function montarEmailConsolidadoLider_(devs, dataDe, dataAte, horaMinima) {
         <tr style="background:#f3f3f3;">
           <th style="padding:6px;border:1px solid #ddd;text-align:left;">Data</th>
           <th style="padding:6px;border:1px solid #ddd;text-align:center;">Horas</th>
+          <th style="padding:6px;border:1px solid #ddd;text-align:center;">Meta</th>
+          <th style="padding:6px;border:1px solid #ddd;text-align:left;">Ausência</th>
         </tr>
       </thead>
       <tbody>
-        ${item.pendencias.map(p => `<tr><td style="padding:6px;border:1px solid #ddd;">${p.data}</td><td style="padding:6px;border:1px solid #ddd;text-align:center;">${p.horas.toFixed(2).replace('.', ',')}h</td></tr>`).join('')}
+        ${item.pendencias.map(p => `<tr><td style="padding:6px;border:1px solid #ddd;">${p.data}</td><td style="padding:6px;border:1px solid #ddd;text-align:center;">${p.horas.toFixed(2).replace('.', ',')}h</td><td style="padding:6px;border:1px solid #ddd;text-align:center;">${formatarHorasEmail_(p.meta, horaMinima)}</td><td style="padding:6px;border:1px solid #ddd;font-size:12px;">${p.ausencia || '-'}</td></tr>`).join('')}
       </tbody>
     </table>
   `).join('');
@@ -1150,16 +948,20 @@ function converterParaData_(val) {
  ********************************************************************************/
 function testarIntegracaoAusenciasEAgenda() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  
-  Logger.log('1️⃣ Testando leitura de ausências (Férias + Agenda)...');
-  const ausencias = carregarAusencias_(ss);
-  Logger.log('Total de ausências encontradas: ' + ausencias.length);
+  const mapaUsuarios = carregarMapaUsuarios_(ss);
+  const devs = {};
+  Object.keys(mapaUsuarios).forEach(k => { const i = mapaUsuarios[k]; if (i.email && i.nome) devs[i.email] = i.nome; });
+  const aus = carregarAusencias_(ss, Object.keys(devs).map(e => ({ email: e, nome: devs[e] })));
 
-  Logger.log('\n2️⃣ Testando avaliação individual...');
-  const dataTeste = new Date(2026, 8, 1);
-  
-  const avaliacaoBruce = avaliarStatusEAusenciaDev_('bruce@totvs.com.br', 'Bruce', dataTeste, ausencias, 6);
-  Logger.log('Resultado Avaliação Bruce: ' + JSON.stringify(avaliacaoBruce, null, 2));
+  const porDev = {};
+  aus.registros.forEach(r => { porDev[r.email] = (porDev[r.email] || 0) + 1; });
+  const linhas = Object.keys(devs).sort().map(e => `• ${devs[e]}: ${porDev[e] || 0} registro(s)`);
+  const msg = `Ausências/férias vinculadas: ${aus.registros.length}\n\n${linhas.join('\n')}` +
+    (aus.naoVinculados.length ? `\n\nSem colaborador identificado (cadastre o apelido na coluna D da DePara_Usuarios):\n${aus.naoVinculados.join(', ')}` : '') +
+    (aus.avisos.length ? `\n\nAvisos: ${aus.avisos.join(' | ')}` : '');
+  Logger.log(msg);
+  try { SpreadsheetApp.getUi().alert(msg); } catch (e) { /* sem UI */ }
+  return msg;
 }
 
 

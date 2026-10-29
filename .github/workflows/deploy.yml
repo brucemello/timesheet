@@ -7,6 +7,7 @@ on:
       - "src/**"
       - ".github/workflows/deploy.yml"
       - "scripts/**"
+      - "tests/**"
   workflow_dispatch:
     inputs:
       descricao:
@@ -38,6 +39,9 @@ jobs:
           test -f src/appsscript.json || { echo "::error::src/appsscript.json não encontrado. Rode o workflow 'Importar do Apps Script' primeiro."; exit 1; }
           jq empty src/appsscript.json
           for f in src/*.js src/*.gs; do [ -f "$f" ] || continue; cp "$f" /tmp/check.js; node --check /tmp/check.js || { echo "::error file=$f::Erro de sintaxe"; exit 1; }; done
+
+      - name: Testes automatizados
+        run: for t in tests/*.test.js; do [ -f "$t" ] || continue; echo "▶ $t"; node "$t"; done
 
       - name: Enviar código (clasp push)
         run: |
