@@ -8,6 +8,44 @@
 
 const CHAVE_ID_PLANILHA = 'CONFIG_SPREADSHEET_ID';
 const ABA_LOG_COBRANCAS = 'Log_Cobrancas';
+const ABA_DISPENSAS = 'Dias_Dispensados';
+const CABECALHO_DISPENSAS = ['E-mail do colaborador', 'Data dispensada', 'Motivo', 'Dispensado por', 'Quando'];
+
+/** Dias que o líder avaliou e decidiu não cobrar: { 'email|yyyy-MM-dd': motivo }. */
+function lerDispensas_(ss) {
+  const mapa = {};
+  const aba = ss.getSheetByName(ABA_DISPENSAS);
+  if (!aba || aba.getLastRow() < 2) return mapa;
+  const n = aba.getLastRow() - 1;
+  const val = aba.getRange(2, 1, n, 3).getValues(), exib = aba.getRange(2, 1, n, 3).getDisplayValues();
+  for (let i = 0; i < n; i++) {
+    const email = String(exib[i][0] || '').trim().toLowerCase();
+    const d = lerDataAus_(val[i][1] instanceof Date ? val[i][1] : exib[i][1]);
+    if (email && d) mapa[email + '|' + isoAus_(d)] = String(exib[i][2] || '').trim();
+  }
+  return mapa;
+}
+
+/** Grava dias dispensados (sem repetir os que já existem). */
+function gravarDispensas_(ss, email, dias, motivo) {
+  let aba = ss.getSheetByName(ABA_DISPENSAS);
+  if (!aba) {
+    aba = ss.insertSheet(ABA_DISPENSAS);
+    aba.getRange(1, 1, 1, CABECALHO_DISPENSAS.length).setValues([CABECALHO_DISPENSAS]);
+    estilizarCabecalho_(aba, 1, CABECALHO_DISPENSAS.length, '#0f766e');
+  }
+  const ja = lerDispensas_(ss);
+  let usuario = '';
+  try { usuario = Session.getActiveUser().getEmail(); } catch (e) { usuario = ''; }
+  const quando = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm');
+  const novos = dias.filter(iso => !((email + '|' + iso) in ja))
+    .map(iso => [email, isoParaDataAus_(iso), motivo || '', usuario, quando]);
+  if (novos.length) {
+    aba.getRange(aba.getLastRow() + 1, 1, novos.length, 5).setValues(novos);
+    aba.getRange(2, 2, aba.getLastRow() - 1, 1).setNumberFormat('dd/MM/yyyy');
+  }
+  return novos.length;
+}
 
 /** Planilha do timesheet: a ativa (menu/gatilho) ou a memorizada (Web App). */
 function obterPlanilha_() {
@@ -97,13 +135,19 @@ function apurarPeriodo_(opcoes) {
 
   const emails = Object.keys(devsInfo).sort((a, b) => devsInfo[a].nome.localeCompare(devsInfo[b].nome));
   const ausencias = carregarAusencias_(ss, emails.map(e => ({ email: e, nome: devsInfo[e].nome })));
+  const dispensas = lerDispensas_(ss);
 
   const devs = emails.map(email => {
     const info = devsInfo[email];
-    const t = { esperadas: 0, apontadas: 0, saldo: 0, diasPendentes: 0, horasFaltantes: 0, diasAusencia: 0, horasAusencia: 0, diasUteis: 0, diasOk: 0 };
+    const t = { esperadas: 0, apontadas: 0, saldo: 0, diasPendentes: 0, horasFaltantes: 0, diasAusencia: 0, horasAusencia: 0, diasUteis: 0, diasOk: 0, diasDispensados: 0 };
     const diasDev = dias.map(dia => {
       const horas = Math.round((horasPorDevDia[email + '|' + dia.iso] || 0) * 100) / 100;
       if (dia.feriado) return { h: horas, m: 0, s: 'FER', a: dia.feriado };
+      const chaveDisp = email + '|' + dia.iso;
+      if (chaveDisp in dispensas) {
+        if (dia.iso < hojeIso) t.diasDispensados++;
+        return { h: horas, m: 0, s: 'DISP', a: 'Dispensado' + (dispensas[chaveDisp] ? ': ' + dispensas[chaveDisp] : '') };
+      }
       const av = avaliarStatusEAusenciaDev_(email, info.nome, lerDataAus_(dia.iso), ausencias, horaMinima);
       const desc = descreverAusenciaDia_(av);
       const ehHoje = dia.iso >= hojeIso;

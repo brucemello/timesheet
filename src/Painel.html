@@ -122,7 +122,7 @@
     .who small { color: var(--ink-3); font-size: 11px; }
     .chip { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
     .c-ok { background: #dcfce7; color: #047857; } .c-bad { background: #fee2e2; color: #b91c1c; } .c-warn { background: #fef3c7; color: #b45309; }
-    .c-info { background: #e0f2fe; color: #0369a1; } .c-vio { background: #ede9fe; color: #6d28d9; } .c-gray { background: #eef2f8; color: #64748b; }
+    .c-info { background: #e0f2fe; color: #0369a1; } .c-teal { background: #ccfbf1; color: #0f766e; } .c-vio { background: #ede9fe; color: #6d28d9; } .c-gray { background: #eef2f8; color: #64748b; }
     .acoes { display: flex; gap: 4px; justify-content: flex-end; }
     .icon-btn { border: 0; background: transparent; cursor: pointer; font-size: 15px; padding: 6px 8px; border-radius: 8px; color: var(--ink-2); }
     .icon-btn:hover { background: #eef4ff; }
@@ -386,6 +386,7 @@
             <span><i style="background:#a78bfa"></i>férias/ausência</span>
             <span><i style="background:#34d399;box-shadow:inset 0 -3px 0 #7c3aed"></i>ausência parcial</span>
             <span><i style="background:#e2e8f0"></i>feriado</span>
+            <span><i style="background:#99f6e4"></i>dispensado</span>
             <span><i style="background:#fff;border:1.5px dashed #0f5b78"></i>hoje</span>
           </div>
         </div>
@@ -457,6 +458,7 @@
         <button class="subtab active" data-cad="colaboradores">🧑‍💻 Colaboradores <span class="count" id="cnt-colaboradores">–</span></button>
         <button class="subtab" data-cad="ausencias">🌴 Ausências manuais <span class="count" id="cnt-ausencias">–</span></button>
         <button class="subtab" data-cad="feriados">📅 Feriados <span class="count" id="cnt-feriados">–</span></button>
+        <button class="subtab" data-cad="dispensas">✋ Dias dispensados <span class="count" id="cnt-dispensas">–</span></button>
       </div>
       <section class="card">
         <div class="card-head">
@@ -781,6 +783,7 @@
     function corCelula(x) {
       if (x.s === 'FER') return { bg: '#e2e8f0', fg: '#64748b', txt: 'F' };
       if (x.s === 'AUS') return { bg: '#a78bfa', fg: '#fff', txt: 'A' };
+      if (x.s === 'DISP') return { bg: '#99f6e4', fg: '#115e59', txt: 'D' };
       const txt = x.h ? fmtH(x.h, x.h % 1 ? 1 : 0) : '0';
       if (x.s === 'HOJE') return { bg: '#fff', fg: '#0f5b78', txt: txt, borda: '1.5px dashed #0f5b78' };
       if (x.s === 'OK') return { bg: x.m === 0 && x.h === 0 ? '#bbf7d0' : '#34d399', fg: '#064e3b', txt: txt };
@@ -891,13 +894,14 @@
     /* ---------- Detalhe do colaborador ---------- */
     function abrirDetalhe(email) {
       const d = DADOS.devs.find(x => x.email === email); if (!d) return;
-      const rot = { OK: ['c-ok', 'OK'], PEND: ['c-bad', 'Pendente'], AUS: ['c-vio', 'Ausência'], FER: ['c-gray', 'Feriado'], HOJE: ['c-info', 'Hoje'] };
+      const rot = { OK: ['c-ok', 'OK'], PEND: ['c-bad', 'Pendente'], AUS: ['c-vio', 'Ausência'], FER: ['c-gray', 'Feriado'], HOJE: ['c-info', 'Hoje'], DISP: ['c-teal', 'Dispensado'] };
       const t = d.totais;
       const corpo = `<div class="cob-stats" style="margin-bottom:14px">
           <span class="chip c-info">Meta ${fmtH(t.esperadas)}h</span><span class="chip c-info">Apontado ${fmtH(t.apontadas)}h</span>
           <span class="chip ${t.saldo >= 0 ? 'c-ok' : 'c-bad'}">Saldo ${t.saldo > 0 ? '+' : ''}${fmtH(t.saldo)}h</span>
           ${t.diasPendentes ? `<span class="chip c-bad">${t.diasPendentes} dia(s) pendente(s) · faltam ${fmtH(t.horasFaltantes)}h</span>` : '<span class="chip c-ok">Em dia</span>'}
           ${t.diasAusencia ? `<span class="chip c-vio">${t.diasAusencia} dia(s) de ausência</span>` : ''}
+          ${t.diasDispensados ? `<span class="chip c-teal">${t.diasDispensados} dia(s) dispensado(s)</span>` : ''}
         </div>
         <div class="det-days">${d.dias.map((x, i) => { const dia = DADOS.dias[i], r = rot[x.s];
           return `<div class="det-day" style="border-left:4px solid ${corCelula(x).bg === '#fff' ? '#0f5b78' : corCelula(x).bg}">
@@ -935,6 +939,7 @@
           <div class="cob-foot">
             <button class="btn btn-line btn-sm" data-prev="${e}" ${nenhum ? 'disabled' : ''}>👁️ Prévia</button>
             <button class="btn btn-line btn-sm" data-teste="${e}" ${nenhum ? 'disabled' : ''}>🧪 Teste</button>
+            <button class="btn btn-line btn-sm" data-dispensar="${e}" title="Não cobrar mais estes dias (vale também para as rotinas automáticas)">✋ Não cobrar</button>
             <button class="btn btn-send btn-sm" data-cobrar="${e}" ${nenhum ? 'disabled title="Marque pelo menos um dia"' : ''}>📧 ${parcial ? `Cobrar ${escolhidos.length} dia(s)` : 'Cobrar agora'}</button>
           </div></div>`;
       }).join('') : '<div class="ok-box" style="grid-column:1/-1"><b>🎉</b>Nenhuma pendência no período. Todo mundo em dia!</div>';
@@ -1028,7 +1033,33 @@
       finally { pronto(); }
     }
 
+    function abrirDispensa(email) {
+      const d = DADOS.devs.find(x => x.email === email); if (!d) return;
+      const ps = diasPend(email);
+      const algumOff = ps.some(o => diaOff(email, o.dia.iso));
+      abrirModal(`Não cobrar mais · ${d.nome}`, `<p style="margin:0 0 12px;line-height:1.55;font-size:13px">Marque os dias que você já avaliou e <b>não devem mais ser cobrados</b>. Eles deixam de aparecer na cobrança do painel, na <b>cobrança automática de sexta</b> e no relatório. Dá para desfazer em <b>Cadastros › Dias dispensados</b>.</p>
+        <div class="dias-tools" style="margin-bottom:8px"><a id="dspTodos">marcar todos</a><a id="dspNenhum">desmarcar todos</a></div>
+        <div class="days" id="dspDias" style="max-height:220px">${ps.map(o => `<label class="day ${o.x.h ? '' : 'zero'}" style="cursor:pointer;display:inline-flex;gap:6px;align-items:center"><input type="checkbox" value="${o.dia.iso}" ${algumOff ? (diaOff(email, o.dia.iso) ? 'checked' : '') : ''}> ${o.dia.br.substring(0, 5)} · ${fmtH(o.x.h)}/${fmtH(o.x.m, 0)}h</label>`).join('')}</div>
+        <div class="fld" style="margin-top:14px"><label for="dspMotivo">Motivo (opcional)</label><input class="inp" id="dspMotivo" placeholder="Ex.: compensado, avaliado com o colaborador, sistema fora do ar"></div>`, [
+        { txt: 'Cancelar', cls: 'btn-line' },
+        { txt: '✋ Não cobrar mais', cls: 'btn-primary', manter: true, acao: async () => {
+          const dias = [...document.querySelectorAll('#dspDias input:checked')].map(i => i.value);
+          if (!dias.length) return toast('Marque pelo menos um dia.', true);
+          const motivo = $('dspMotivo').value; fecharModal();
+          carregando('Salvando dias dispensados…');
+          try {
+            const r = await chamar('dispensarDiasPainel', { email, dias, motivo });
+            delete DIAS_OFF[email]; CAD.carregado.dispensas = false;
+            toast(r.mensagem); await carregar(false);
+          } catch (err) { pronto(); toast(err.message, true); }
+        } }
+      ]);
+      $('dspTodos').onclick = () => document.querySelectorAll('#dspDias input').forEach(i => i.checked = true);
+      $('dspNenhum').onclick = () => document.querySelectorAll('#dspDias input').forEach(i => i.checked = false);
+    }
+
     document.addEventListener('click', e => {
+      const ds = e.target.closest('[data-dispensar]'); if (ds) return abrirDispensa(ds.dataset.dispensar);
       const c = e.target.closest('[data-cobrar]'); if (c) return fluxoCobranca(c.dataset.cobrar);
       const p = e.target.closest('[data-prev]'); if (p) return verPrevia(p.dataset.prev);
       const t = e.target.closest('[data-teste]'); if (t) return enviar([t.dataset.teste], true);
@@ -1081,7 +1112,8 @@
     const INFO_CAD = {
       colaboradores: 'Time que é cobrado. <b>Apelidos</b>: como a pessoa aparece na agenda quando não é pelo nome (ex.: Carlão, Zé), separados por vírgula. <b>Cobrar = NÃO</b> tira da cobrança semanal automática (ex.: líder), mas ela continua no painel.',
       ausencias: '<b>Lugar único para ausências manuais</b> (licenças, atestados, afastamentos que não estão na agenda nem na planilha de férias): o Capacidade Não Produtiva também lê esta lista, então não precisa lançar lá. Sem horas = dia inteiro; com horas = abate só aquelas horas de cada dia do intervalo. Use no motivo palavras como "Licença", "Atestado" ou "Consulta" para classificar o tipo.',
-      feriados: 'Os feriados nacionais e de SP já são automáticos (lista abaixo). Cadastre aqui os municipais, emendas e pontos facultativos.'
+      feriados: 'Os feriados nacionais e de SP já são automáticos (lista abaixo). Cadastre aqui os municipais, emendas e pontos facultativos.',
+      dispensas: 'Dias que você avaliou e decidiu <b>não cobrar mais</b>. Eles saem da cobrança do painel, da cobrança automática de sexta e do relatório. Para voltar a cobrar um dia, exclua a linha (🗑) e clique em Salvar. O jeito mais fácil de dispensar é pelo botão <b>✋ Não cobrar</b> no cartão da aba Cobranças.'
     };
     async function carregarCadastro(nome) {
       carregando('Carregando cadastro…');
@@ -1110,7 +1142,7 @@
 
     function renderCadastro() {
       $('cadTitulo').textContent = CAD.titulo;
-      $('cadSub').textContent = `${CAD.linhas.length} linha(s) · aba "${{ colaboradores: 'DePara_Usuarios', ausencias: 'Ausencias', feriados: 'Feriados' }[CAD.nome]}" da planilha`;
+      $('cadSub').textContent = `${CAD.linhas.length} linha(s) · aba "${{ colaboradores: 'DePara_Usuarios', ausencias: 'Ausencias', feriados: 'Feriados', dispensas: 'Dias_Dispensados' }[CAD.nome]}" da planilha`;
       $('cadBanner').innerHTML = `<div class="banner">ℹ️ <div>${INFO_CAD[CAD.nome]}</div></div>`;
       $('cardFeriadosAuto').hidden = CAD.nome !== 'feriados';
       const q = $('cadBusca').value.trim().toLowerCase();
@@ -1283,7 +1315,7 @@
             <tr><td><b>Ausências</b></td><td>Dias inteiros de ausência + horas de ausências parciais.</td></tr>
             <tr><td><b>% Não produtivo</b></td><td>Horas de ausência ÷ capacidade bruta (dias úteis encerrados × hora mínima). Passe o mouse no card para ver a conta.</td></tr></table>
             <h3>Mapa diário</h3><p>Cada quadrado é um dia de uma pessoa. Passe o mouse para ver horas, meta e ausência; clique no nome para ver o detalhe dia a dia.</p>
-            <div class="man-legend"><span><i style="background:#ef4444"></i>0h</span><span><i style="background:#fb923c"></i>menos da metade da meta</span><span><i style="background:#fcd34d"></i>abaixo da meta</span><span><i style="background:#34d399"></i>meta cumprida</span><span><i style="background:#a78bfa"></i>férias/ausência (A)</span><span><i style="background:#34d399;box-shadow:inset 0 -3px 0 #7c3aed"></i>teve ausência parcial</span><span><i style="background:#e2e8f0"></i>feriado (F)</span><span><i style="background:#fff;border:1.5px dashed #0f5b78"></i>hoje</span></div>
+            <div class="man-legend"><span><i style="background:#ef4444"></i>0h</span><span><i style="background:#fb923c"></i>menos da metade da meta</span><span><i style="background:#fcd34d"></i>abaixo da meta</span><span><i style="background:#34d399"></i>meta cumprida</span><span><i style="background:#a78bfa"></i>férias/ausência (A)</span><span><i style="background:#34d399;box-shadow:inset 0 -3px 0 #7c3aed"></i>teve ausência parcial</span><span><i style="background:#e2e8f0"></i>feriado (F)</span><span><i style="background:#99f6e4"></i>dispensado (D)</span><span><i style="background:#fff;border:1.5px dashed #0f5b78"></i>hoje</span></div>
             <h3>Tabela de colaboradores</h3><ul><li>Clique no cabeçalho para ordenar; use o filtro <b>Com pendência</b> e a busca.</li><li><b>🔎</b> abre o detalhe, <b>👁️</b> mostra a prévia do e-mail, <b>📧 Cobrar</b> envia.</li><li>Marque várias caixas para cobrar em lote; <b>⬇ CSV</b> exporta a tabela.</li><li>Etiquetas: <span class="chip c-gray">não cobrar</span> (Cobrar = NÃO) e <span class="chip c-warn">fora do cadastro</span> (apontou no Tempo, mas não está em Colaboradores).</li></ul>
             <button class="btn btn-soft btn-sm man-ir" data-man-ir="dash">Abrir o Dashboard →</button>` },
 
@@ -1296,6 +1328,8 @@
               <li>Clique em <b>📧 Cobrar agora</b> e confirme. O e-mail vai para a pessoa <b>com cópia para o líder</b>.</li>
             </ol>
             <h3>✂️ Cobrar só alguns dias</h3><p>No cartão, <b>clique nos dias</b> para tirar ou incluir na cobrança: dia marcado tem ✓, dia riscado fica de fora. Atalhos: <b>desmarcar todos</b>, <b>marcar todos</b> e <b>só sem registro</b>. O botão passa a mostrar <b>Cobrar N dia(s)</b>, e a prévia, o teste, o envio em lote e o histórico usam só os dias marcados.</p>
+            <h3>✋ Não cobrar mais um dia (permanente)</h3><p>Avaliou um dia e decidiu que ele não deve ser cobrado? No cartão, clique em <b>✋ Não cobrar</b>, marque os dias e, se quiser, escreva o motivo. Esses dias ficam como <b>Dispensado</b> (cor verde-água, "D" no mapa) e saem da cobrança do painel, da <b>cobrança automática de sexta</b> e do relatório. Para voltar a cobrar, exclua a linha em <b>Cadastros › Dias dispensados</b>.</p>
+            <div class="man-tip">💡 Diferença: <b>desmarcar o dia no cartão</b> vale só para aquele envio; <b>Não cobrar mais</b> vale para sempre.</div>
             <h3>Cobrar várias pessoas</h3><p>Marque as caixas dos cartões (ou <b>☑ Selecionar todos</b>) e use a barra escura que aparece: <b>📧 Cobrar selecionados</b>.</p>
             <h3>O que vai no e-mail</h3><ul><li>Só dias úteis encerrados abaixo da meta, com apontado, meta, quanto falta e a situação (sem registro ou parcial).</li><li>Férias, folgas, feriados e ausências já descontados.</li><li>Botão que abre o timesheet do time no Tempo, no período cobrado.</li></ul>
             <h3>Histórico</h3><p>Toda cobrança (do painel ou da rotina de sexta) fica registrada no <b>Histórico de cobranças</b> e na aba <code>Log_Cobrancas</code>. O cartão mostra a data da última cobrança.</p>
@@ -1346,6 +1380,7 @@
         { p: 'Como lanço licença por falecimento, casamento ou atestado?', r: '<p>Em <b>Cadastros › Ausências manuais</b>: nova linha, e-mail da pessoa, início e fim, horas em branco, motivo "Licença…" ou "Atestado". Salve. Vale também para o Capacidade.</p>' },
         { p: 'Posso cobrar só uma pessoa?', r: '<p>Sim: na aba Cobranças, botão <b>📧 Cobrar agora</b> no cartão dela, ou o botão Cobrar na tabela do Dashboard.</p>' },
         { p: 'Quero cobrar só alguns dias de uma pessoa.', r: '<p>Na aba Cobranças, clique nos dias do cartão dela para desmarcar os que não quer cobrar (ou use <b>só sem registro</b>). Depois clique em <b>Cobrar N dia(s)</b>.</p>' },
+        { p: 'Já avaliei um dia e não quero que ele seja cobrado de novo, nem na sexta.', r: '<p>No cartão da pessoa (aba Cobranças), clique em <b>✋ Não cobrar</b>, marque os dias e confirme. Para desfazer, exclua a linha em <b>Cadastros › Dias dispensados</b>.</p>' },
         { p: 'Quero ver o e-mail antes de mandar.', r: '<p>Use <b>👁️ Prévia</b> (mostra na tela) ou <b>🧪 Teste</b> (manda só para você).</p>' },
         { p: 'Por que o dia de hoje não aparece como pendente?', r: '<p>O dia ainda não acabou. Só dias úteis encerrados são cobrados.</p>' },
         { p: 'Feriado municipal não está sendo considerado.', r: '<p>Cadastre em <b>Cadastros › Feriados</b>. Os nacionais e de SP já são automáticos.</p>' },

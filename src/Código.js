@@ -123,7 +123,7 @@ function extrairEGravarNaPlanilha(opcoes) {
   const ss = obterPlanilha_();
   const horaMinimaNum = apur.horaMinima;
 
-  const rotuloStatus = { OK: 'OK', PEND: 'PENDENTE', AUS: 'FÉRIAS / AUSÊNCIA', FER: 'FERIADO', HOJE: 'EM ANDAMENTO' };
+  const rotuloStatus = { OK: 'OK', PEND: 'PENDENTE', AUS: 'FÉRIAS / AUSÊNCIA', FER: 'FERIADO', HOJE: 'EM ANDAMENTO', DISP: 'DISPENSADO' };
   const registrosProcessados = [];
   const resumoConsolidadoDevs = [];
   const pendenciasDetalhadas = [];
@@ -242,6 +242,9 @@ function aplicarCoresStatusDiario_(aba, totalLinhas) {
     if (linha[0] === 'OK') {
       coresFundo.push(['#e6f4ea']);
       coresTexto.push(['#137333']);
+    } else if (linha[0] === 'DISPENSADO') {
+      coresFundo.push(['#ccfbf1']);
+      coresTexto.push(['#115e59']);
     } else if (linha[0] === 'EM ANDAMENTO') {
       coresFundo.push(['#fef7e0']);
       coresTexto.push(['#b06000']);

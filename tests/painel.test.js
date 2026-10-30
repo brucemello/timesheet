@@ -143,11 +143,30 @@ assert.strictEqual(logTs[logTs.length - 1][4], '08/10');
 assert.ok(/dias escolhidos/.test(logTs[logTs.length - 1][6]));
 assert.ok(/<b>01\/10<\/b>/.test(R('previewCobrancaPainel({ email: "evandro.peixoto@totvs.com.br" })').html), 'sem filtro continua todos');
 
+// 4c) dias dispensados: não são mais cobrados, nem na rotina semanal
+r = R('dispensarDiasPainel({ email: "evandro.peixoto@totvs.com.br", dias: ["2026-10-01", "2026-10-02"], motivo: "Avaliado com o líder" })');
+assert.ok(r.sucesso && /2 dia/.test(r.mensagem), r.mensagem);
+assert.ok(/já estavam/.test(R('dispensarDiasPainel({ email: "evandro.peixoto@totvs.com.br", dias: ["2026-10-01"] })').mensagem), 'não duplica');
+r = R('obterDadosPainel({})'); ap = r.apuracao;
+const evd = dev('evandro.peixoto@totvs.com.br');
+const i01 = ap.dias.findIndex(d => d.iso === '2026-10-01');
+assert.strictEqual(evd.dias[i01].s, 'DISP'); assert.ok(/Avaliado com o líder/.test(evd.dias[i01].a));
+assert.strictEqual(evd.totais.diasPendentes, 2, '4 pendentes - 2 dispensados'); assert.strictEqual(evd.totais.diasDispensados, 2);
+assert.ok(!/<b>01\/10<\/b>/.test(R('previewCobrancaPainel({ email: "evandro.peixoto@totvs.com.br" })').html), 'dispensado fora do e-mail');
+r = R('obterCadastroPainel("dispensas")');
+assert.ok(r.sucesso && r.linhas.length === 2 && r.linhas[0].data === '2026-10-01', 'aparece no cadastro');
+ctx.__disp = r.linhas.filter(l => l.data === '2026-10-02');
+assert.ok(R('salvarCadastroPainel("dispensas", __disp)').sucesso, 'desfazer pelo cadastro');
+r = R('obterDadosPainel({})'); ap = r.apuracao;
+assert.strictEqual(dev('evandro.peixoto@totvs.com.br').totais.diasPendentes, 3, 'voltou a cobrar 01/10');
+
 // 5) cobrança semanal respeita Cobrar = NÃO e quem está em dia
 ctx.emails.length = 0;
 R('executarVerificacaoEAlertaSemanais(false)');
 const destinos = ctx.emails.map(m => m.to);
 assert.ok(!destinos.includes('fabio.mendonca@totvs.com.br'));
+const semanalEvandro = ctx.emails.find(m => m.to === 'evandro.peixoto@totvs.com.br');
+assert.ok(semanalEvandro && !/<b>02\/10<\/b>/.test(semanalEvandro.htmlBody), 'semanal não cobra dia dispensado');
 assert.ok(destinos.includes('evandro.peixoto@totvs.com.br'));
 assert.strictEqual(destinos.filter(d => d === 'bruce.mello@totvs.com.br').length, 1, 'líder (Cobrar=NÃO) só recebe o consolidado');
 

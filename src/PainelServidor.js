@@ -169,6 +169,25 @@ function enviarCobrancasPainel(params) {
   });
 }
 
+/**
+ * Dispensa dias da cobrança de forma permanente (painel, abas e rotinas automáticas).
+ * params: { email, dias: ['yyyy-MM-dd'], motivo }
+ */
+function dispensarDiasPainel(params) {
+  return respostaPainel_(() => {
+    const email = String(params && params.email || '').trim().toLowerCase();
+    const dias = ((params && params.dias) || []).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d));
+    if (!email || !dias.length) throw new Error('Escolha pelo menos um dia para dispensar.');
+    const lock = LockService.getScriptLock();
+    lock.waitLock(20000);
+    let n;
+    try { n = gravarDispensas_(obterPlanilha_(), email, dias, String(params.motivo || '').trim()); }
+    finally { lock.releaseLock(); }
+    limparCacheApuracao_();
+    return { mensagem: n ? `${n} dia(s) dispensado(s): não serão mais cobrados, nem pelas rotinas automáticas.` : 'Esses dias já estavam dispensados.' };
+  });
+}
+
 /* =============================================================================
  * AÇÕES / ROTINAS
  * ===========================================================================*/
@@ -296,6 +315,16 @@ const CADASTROS_PAINEL = {
   feriados: {
     aba: 'Feriados', titulo: 'Feriados',
     colunas: [{ key: 'data', label: 'Data', data: true, obrig: true }, { key: 'descricao', label: 'Descrição' }]
+  },
+  dispensas: {
+    aba: ABA_DISPENSAS, titulo: 'Dias dispensados',
+    colunas: [
+      { key: 'email', label: 'E-mail do colaborador', obrig: true },
+      { key: 'data', label: 'Data dispensada', data: true, obrig: true },
+      { key: 'motivo', label: 'Motivo' },
+      { key: 'por', label: 'Dispensado por' },
+      { key: 'quando', label: 'Quando' }
+    ]
   },
   ausencias: {
     aba: 'Ausencias', titulo: 'Ausências manuais',
