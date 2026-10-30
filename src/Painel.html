@@ -230,6 +230,81 @@
     @media (max-width: 1250px) { .kpis { grid-template-columns: repeat(3, 1fr); } }
     @media (max-width: 900px) { .row-2, .gen-grid, .form-row, .action-grid { grid-template-columns: 1fr; } .kpis { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 560px) { .hero, main { padding-left: 16px; padding-right: 16px; } .search { width: 100%; } .cob-grid { grid-template-columns: 1fr; } }
+      /* ================= MANUAL INTERATIVO ================= */
+    .man-wrap { display: grid; grid-template-columns: 260px 1fr; gap: 16px; align-items: start; }
+    .man-nav { position: sticky; top: 12px; padding: 14px; }
+    .man-nav .search { width: 100%; margin-bottom: 10px; }
+    .man-nav a { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 10px; color: var(--ink-2); text-decoration: none; font-weight: 600; font-size: 13px; cursor: pointer; }
+    .man-nav a:hover { background: #f1f5fb; color: var(--ink); }
+    .man-nav a.on { background: #0b1f3a; color: #fff; }
+    .man-nav a[hidden] { display: none; }
+    .man-nav .man-tourbtn { width: 100%; margin-top: 12px; }
+    .man-body { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    .man-hero { background: linear-gradient(120deg, #0b1f3a, #0f5b78); color: #fff; border: 0; padding: 24px; }
+    .man-hero h2 { font-size: 20px; color: #fff; }
+    .man-hero p { margin: 8px 0 16px; opacity: .88; line-height: 1.6; font-size: 13.5px; max-width: 760px; }
+    .man-quick { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; margin-top: 16px; }
+    .man-quick button { text-align: left; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.22); color: #fff; border-radius: 12px; padding: 12px; cursor: pointer; font: inherit; font-size: 12.5px; font-weight: 600; display: flex; gap: 10px; align-items: center; transition: background .15s; }
+    .man-quick button:hover { background: rgba(255,255,255,.2); }
+    .man-quick button span { font-size: 20px; }
+    .man-sec { scroll-margin-top: 12px; transition: box-shadow .3s; }
+    .man-sec.flash { box-shadow: 0 0 0 3px rgba(15,91,120,.35), var(--shadow); }
+    .man-sec[hidden] { display: none; }
+    .man-sec .man-res { font-size: 13px; color: var(--ink-2); margin: 4px 0 12px; line-height: 1.55; }
+    .man-txt { font-size: 13px; line-height: 1.65; color: var(--ink); }
+    .man-txt h3 { font-size: 13.5px; margin: 16px 0 6px; }
+    .man-txt p { margin: 0 0 10px; }
+    .man-txt ul, .man-txt ol { margin: 0 0 10px; padding-left: 20px; }
+    .man-txt li { margin-bottom: 4px; }
+    .man-txt code { background: #eef2f8; padding: 1px 6px; border-radius: 6px; font-size: 12px; }
+    .man-txt table { border-collapse: collapse; width: 100%; font-size: 12.5px; margin: 6px 0 12px; }
+    .man-txt th { text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3); padding: 8px; border-bottom: 1px solid var(--line); }
+    .man-txt td { padding: 8px; border-bottom: 1px solid #f1f4f9; vertical-align: top; }
+    .man-steps { counter-reset: p; list-style: none; padding: 0 !important; }
+    .man-steps li { counter-increment: p; position: relative; padding: 2px 0 8px 36px; }
+    .man-steps li::before { content: counter(p); position: absolute; left: 0; top: 0; width: 24px; height: 24px; border-radius: 50%; background: #0f5b78; color: #fff; font-size: 12px; font-weight: 800; display: grid; place-items: center; }
+    .man-tip { display: block; padding: 10px 12px; border-radius: 10px; background: #f0f9ff; border: 1px solid #bae6fd; color: #0c4a6e; font-size: 12.5px; margin: 8px 0 12px; line-height: 1.5; }
+    .man-tip.warn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+    .man-flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 14px; }
+    .man-flow span.box { padding: 8px 12px; border-radius: 10px; background: #f1f5fb; border: 1px solid var(--line); font-weight: 700; font-size: 12px; }
+    .man-flow span.seta { color: var(--ink-3); font-weight: 800; }
+    .man-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 6px 0 12px; font-size: 12px; }
+    .man-legend span { display: inline-flex; gap: 6px; align-items: center; }
+    .man-legend i { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+    .man-ir { margin-top: 6px; }
+    .man-sim { border: 1px dashed #93c5fd; background: #f8fbff; border-radius: 14px; padding: 16px; margin: 10px 0; }
+    .man-sim .form-row { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+    .man-sim-out { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 6px; }
+    .man-sim-out .big { font-size: 22px; font-weight: 800; }
+    .man-sim-out .cel { width: 38px; height: 32px; border-radius: 8px; display: grid; place-items: center; font-weight: 800; font-size: 12px; }
+    .man-sim-exp { font-size: 12.5px; color: var(--ink-2); margin-top: 10px; line-height: 1.55; }
+    .man-faq details { border: 1px solid var(--line); border-radius: 12px; padding: 0 14px; margin-bottom: 8px; background: #fff; }
+    .man-faq details[hidden] { display: none; }
+    .man-faq summary { cursor: pointer; padding: 12px 0; font-weight: 700; font-size: 13px; list-style: none; display: flex; justify-content: space-between; gap: 10px; }
+    .man-faq summary::after { content: '＋'; color: var(--ink-3); }
+    .man-faq details[open] summary::after { content: '－'; }
+    .man-faq details .man-txt { padding: 0 0 12px; }
+    .man-vazio { text-align: center; color: var(--ink-3); padding: 30px; font-weight: 600; }
+
+    /* tour */
+    .tour-bloq { position: fixed; inset: 0; z-index: 95; }
+    .tour-luz { position: fixed; z-index: 96; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(11,27,51,.62); pointer-events: none; transition: all .3s ease; border: 2px solid #38bdf8; }
+    .tour-luz.sem { width: 0 !important; height: 0 !important; left: 50% !important; top: 40% !important; border: 0; }
+    .tour-card { position: fixed; z-index: 97; width: min(360px, calc(100vw - 24px)); background: #fff; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,.3); padding: 16px 18px; transition: top .3s, left .3s; }
+    .tour-card .t-cont { font-size: 11px; font-weight: 800; color: #0f5b78; letter-spacing: .08em; text-transform: uppercase; }
+    .tour-card h4 { margin: 4px 0 6px; font-size: 15px; }
+    .tour-card p { margin: 0; font-size: 13px; line-height: 1.55; color: var(--ink-2); }
+    .tour-card .t-bar { height: 4px; border-radius: 4px; background: #eef2f8; margin: 12px 0; overflow: hidden; }
+    .tour-card .t-bar span { display: block; height: 100%; background: linear-gradient(90deg, #06b6d4, #0f5b78); transition: width .3s; }
+    .tour-card .t-btns { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+    .tour-card .t-x { position: absolute; top: 10px; right: 10px; border: 0; background: transparent; cursor: pointer; font-size: 15px; color: var(--ink-3); }
+    .man-boasvindas { position: fixed; left: 18px; bottom: 18px; z-index: 60; width: min(340px, calc(100vw - 36px)); background: #fff; border-radius: 16px; box-shadow: 0 16px 40px rgba(11,27,51,.22); border: 1px solid var(--line); padding: 16px; }
+    .man-boasvindas b { font-size: 14px; }
+    .man-boasvindas p { margin: 6px 0 12px; font-size: 12.5px; color: var(--ink-2); line-height: 1.5; }
+    .man-ajuda { position: fixed; right: 18px; bottom: 18px; z-index: 55; width: 44px; height: 44px; border-radius: 50%; border: 0; background: #0b1f3a; color: #fff; font-size: 18px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 22px rgba(11,27,51,.3); }
+    .man-ajuda:hover { background: #0f5b78; }
+    @media (max-width: 900px) { .man-wrap { grid-template-columns: 1fr; } .man-nav { position: static; } }
+    @media (max-width: 560px) { .tour-card { left: 12px !important; right: 12px; bottom: 12px; top: auto !important; width: auto; } }
   </style>
 </head>
 <body>
@@ -266,6 +341,7 @@
       <button class="tab" data-view="ausencias">🌴 Ausências</button>
       <button class="tab" data-view="cadastros">🗂️ Cadastros</button>
       <button class="tab" data-view="config">⚙️ Configurações</button>
+      <button class="tab" data-view="manual">📘 Manual</button>
     </nav>
   </header>
 
@@ -466,6 +542,8 @@
         </div>
       </div>
     </div>
+      <!-- ===================== MANUAL ===================== -->
+    <div class="view" id="view-manual" hidden><div id="manualRaiz"></div></div>
   </main>
 
   <footer id="rodape">—</footer>
@@ -1098,6 +1176,314 @@
       if (v === 'cadastros' || v === 'config') v = 'dash';
       irPara(v);
       carregar(false);
+    })();
+  </script>
+  <script>
+    /* ================= MANUAL: conteúdo do Timesheet ================= */
+    window.MANUAL = {
+      chave: 'ts_manual_visto', viewManual: 'manual',
+      irPara: v => irPara(v),
+      titulo: 'Manual do Timesheet',
+      intro: 'Este painel acompanha o apontamento de horas do time no Jira/Tempo. Ele calcula a meta de cada dia útil já descontando férias, folgas, ausências e feriados, mostra quem está pendente e envia a cobrança por e-mail. Escolha um atalho abaixo ou faça o tour guiado.',
+      rapidos: [
+        { icone: '📧', txt: 'Quero cobrar uma pessoa', sec: 'cobrancas' },
+        { icone: '🌴', txt: 'Lançar licença, atestado ou afastamento', sec: 'cadastros' },
+        { icone: '🧮', txt: 'Entender por que alguém está pendente', sec: 'calculo' },
+        { icone: '🔎', txt: 'A agenda não reconheceu alguém', sec: 'ausencias' },
+        { icone: '⏰', txt: 'Ligar as rotinas automáticas', sec: 'config' }
+      ],
+      secoes: [
+        { id: 'visao', icone: '🧭', titulo: 'Visão geral', tags: 'como funciona fluxo período hoje',
+          resumo: 'De onde vêm os dados e o que o painel faz com eles.',
+          html: `<div class="man-flow"><span class="box">⏱️ Tempo (Team ID)</span><span class="seta">+</span><span class="box">🏖️ Férias e folgas</span><span class="seta">+</span><span class="box">📅 Agenda de ausências</span><span class="seta">+</span><span class="box">✍️ Ausências manuais</span><span class="seta">+</span><span class="box">🎌 Feriados</span><span class="seta">→</span><span class="box">🧮 Meta do dia</span><span class="seta">→</span><span class="box">📊 Painel e 📧 e-mails</span></div>
+            <ul>
+              <li><b>Período:</b> por padrão, o mês corrente. Use <b>Mês de / Até</b> no topo para olhar outros meses e clique em <b>Aplicar</b>.</li>
+              <li><b>Só dias úteis encerrados são cobrados.</b> O dia de hoje aparece no mapa, mas nunca vira pendência.</li>
+              <li><b>↻ Atualizar</b> busca tudo de novo no Tempo, na agenda e nas férias. Sem clicar, o painel reaproveita a última busca por até 30 minutos.</li>
+              <li>O painel tem 6 abas: <b>Dashboard</b>, <b>Cobranças</b>, <b>Ausências</b>, <b>Cadastros</b>, <b>Configurações</b> e este <b>Manual</b>.</li>
+            </ul>` },
+
+        { id: 'calculo', icone: '🧮', titulo: 'Como a meta do dia é calculada', tags: 'meta pendente regra ausência parcial simulador',
+          resumo: 'A regra que decide se um dia está OK ou pendente. Teste no simulador.',
+          html: `<table><tr><th>Situação do dia</th><th>Meta do dia</th><th>É cobrado?</th></tr>
+            <tr><td>Dia útil normal</td><td>Hora mínima (ex.: 7h)</td><td>Sim, se apontou menos que a meta</td></tr>
+            <tr><td>Ausência parcial (consulta de 2h)</td><td>Hora mínima − horas da ausência (7h − 2h = 5h)</td><td>Sim, se apontou menos que 5h</td></tr>
+            <tr><td>Férias, folga, licença, ausência de dia inteiro</td><td>0h</td><td>Não</td></tr>
+            <tr><td>Feriado (nacional, SP ou cadastrado)</td><td>—</td><td>Não</td></tr>
+            <tr><td>Hoje</td><td>Meta normal</td><td>Não (aparece como "Hoje")</td></tr>
+            <tr><td>Sábado e domingo</td><td>—</td><td>Não aparecem</td></tr></table>
+            <div class="man-tip">💡 Duas ausências no mesmo horário contam uma vez só. Ausências que somam 8h ou mais viram dia inteiro.</div>
+            <h3>🧪 Simulador</h3>
+            <div class="man-sim">
+              <div class="form-row">
+                <div class="fld"><label>Hora mínima</label><input class="inp" type="number" id="simMeta" value="7" min="1" max="12" step="0.5"></div>
+                <div class="fld"><label>Tipo de dia</label><select class="inp" id="simTipo"><option value="normal">Dia útil normal</option><option value="parcial">Com ausência parcial</option><option value="inteiro">Férias / folga / licença</option><option value="feriado">Feriado</option><option value="hoje">Hoje</option></select></div>
+                <div class="fld" id="simAusBox"><label>Horas de ausência</label><input class="inp" type="number" id="simAus" value="2" min="0" max="12" step="0.5"></div>
+                <div class="fld"><label>Horas apontadas</label><input class="inp" type="number" id="simAp" value="4" min="0" max="16" step="0.5"></div>
+              </div>
+              <div class="man-sim-out" id="simOut"></div><div class="man-sim-exp" id="simExp"></div>
+            </div>` },
+
+        { id: 'dashboard', icone: '📈', titulo: 'Dashboard', tags: 'cards indicadores grafico mapa tabela csv nao produtivo',
+          resumo: 'Os indicadores, gráficos e o mapa diário do período escolhido.',
+          html: `<h3>Indicadores (cards)</h3><table>
+            <tr><td><b>Cumprimento da meta</b></td><td>Quanto da meta dos dias encerrados foi cumprido. Verde a partir de 95%, amarelo a partir de 80%.</td></tr>
+            <tr><td><b>Meta do período</b></td><td>Soma das metas do dia de todos, já com ausências descontadas.</td></tr>
+            <tr><td><b>Horas apontadas</b></td><td>Tudo que foi lançado no Tempo no período, incluindo hoje.</td></tr>
+            <tr><td><b>Saldo</b></td><td>Apontado − meta. Negativo = time devendo horas.</td></tr>
+            <tr><td><b>Com pendência</b></td><td>Quantas pessoas têm pelo menos um dia abaixo da meta.</td></tr>
+            <tr><td><b>Dias pendentes</b></td><td>Total de dias abaixo da meta e quantas horas faltam.</td></tr>
+            <tr><td><b>Ausências</b></td><td>Dias inteiros de ausência + horas de ausências parciais.</td></tr>
+            <tr><td><b>% Não produtivo</b></td><td>Horas de ausência ÷ capacidade bruta (dias úteis encerrados × hora mínima). Passe o mouse no card para ver a conta.</td></tr></table>
+            <h3>Mapa diário</h3><p>Cada quadrado é um dia de uma pessoa. Passe o mouse para ver horas, meta e ausência; clique no nome para ver o detalhe dia a dia.</p>
+            <div class="man-legend"><span><i style="background:#ef4444"></i>0h</span><span><i style="background:#fb923c"></i>menos da metade da meta</span><span><i style="background:#fcd34d"></i>abaixo da meta</span><span><i style="background:#34d399"></i>meta cumprida</span><span><i style="background:#a78bfa"></i>férias/ausência (A)</span><span><i style="background:#34d399;box-shadow:inset 0 -3px 0 #7c3aed"></i>teve ausência parcial</span><span><i style="background:#e2e8f0"></i>feriado (F)</span><span><i style="background:#fff;border:1.5px dashed #0f5b78"></i>hoje</span></div>
+            <h3>Tabela de colaboradores</h3><ul><li>Clique no cabeçalho para ordenar; use o filtro <b>Com pendência</b> e a busca.</li><li><b>🔎</b> abre o detalhe, <b>👁️</b> mostra a prévia do e-mail, <b>📧 Cobrar</b> envia.</li><li>Marque várias caixas para cobrar em lote; <b>⬇ CSV</b> exporta a tabela.</li><li>Etiquetas: <span class="chip c-gray">não cobrar</span> (Cobrar = NÃO) e <span class="chip c-warn">fora do cadastro</span> (apontou no Tempo, mas não está em Colaboradores).</li></ul>
+            <button class="btn btn-soft btn-sm man-ir" data-man-ir="dash">Abrir o Dashboard →</button>` },
+
+        { id: 'cobrancas', icone: '📧', titulo: 'Cobrar apontamento', tags: 'email cobranca previa teste lote historico enviar',
+          resumo: 'Como enviar o e-mail de cobrança para uma ou várias pessoas.',
+          html: `<ol class="man-steps">
+              <li>Abra a aba <b>📧 Cobranças</b>. Cada cartão é uma pessoa com pendência, com os dias e as horas que faltam.</li>
+              <li>Clique em <b>👁️ Prévia</b> para ver o e-mail exatamente como será enviado.</li>
+              <li>Quer conferir na sua caixa? Use <b>🧪 Teste</b>: o e-mail vai só para você.</li>
+              <li>Clique em <b>📧 Cobrar agora</b> e confirme. O e-mail vai para a pessoa <b>com cópia para o líder</b>.</li>
+            </ol>
+            <h3>Cobrar várias pessoas</h3><p>Marque as caixas dos cartões (ou <b>☑ Selecionar todos</b>) e use a barra escura que aparece: <b>📧 Cobrar selecionados</b>.</p>
+            <h3>O que vai no e-mail</h3><ul><li>Só dias úteis encerrados abaixo da meta, com apontado, meta, quanto falta e a situação (sem registro ou parcial).</li><li>Férias, folgas, feriados e ausências já descontados.</li><li>Botão que abre o timesheet do time no Tempo, no período cobrado.</li></ul>
+            <h3>Histórico</h3><p>Toda cobrança (do painel ou da rotina de sexta) fica registrada no <b>Histórico de cobranças</b> e na aba <code>Log_Cobrancas</code>. O cartão mostra a data da última cobrança.</p>
+            <div class="man-tip warn">⚠️ <b>Cobrar = NÃO</b> só tira a pessoa da cobrança automática de sexta. Se você clicar em Cobrar no painel, o e-mail é enviado mesmo assim.</div>
+            <button class="btn btn-soft btn-sm man-ir" data-man-ir="cobrancas">Abrir Cobranças →</button>` },
+
+        { id: 'ausencias', icone: '🌴', titulo: 'Ausências e férias', tags: 'agenda ferias folga giftcard resetday apelido nao identificado',
+          resumo: 'De onde vêm as ausências e como o painel descobre de quem é cada uma.',
+          html: `<table><tr><th>Fonte</th><th>O que é lido</th></tr>
+            <tr><td><b>Planilha de férias</b> · Controle Consolidado</td><td>Férias Marcadas, Em gozo, Finalizadas ou Agendadas (dia inteiro).</td></tr>
+            <tr><td><b>Planilha de férias</b> · Folgas e Emendas</td><td>GIFTCARD, RESETDAY, MVT… (conta só dias úteis).</td></tr>
+            <tr><td><b>Agenda de ausências</b> (espelho)</td><td>Evento de dia inteiro = dia sem cobrança. Evento com horário = abate só aquelas horas.</td></tr>
+            <tr><td><b>Ausências manuais</b> (Cadastros)</td><td>Licenças, atestados e afastamentos que não estão nas outras fontes.</td></tr></table>
+            <h3>Como a pessoa é identificada</h3><p>Pelo título do evento: "Keilla - Consulta", "Consulta - Pâmela", "Edu - Exame", "Ausência: NOME [Marcadas]". Se não der, pelo criador do evento.</p>
+            <div class="man-tip">💡 <b>Boa prática para o time:</b> sempre começar o título do evento com o nome, ex.: <code>Carla - Dentista</code>.</div>
+            <h3>Apareceu "evento sem colaborador identificado"?</h3><p>Ele não está sendo descontado de ninguém. Normalmente é apelido (ex.: "Carlão"). Cadastre em <b>Cadastros › Colaboradores › Apelidos</b> e clique em Salvar.</p>
+            <p>O tipo (Férias, Folga, Consulta/Exame, Atestado, Licença, Treinamento…) é deduzido pelas palavras do título.</p>
+            <button class="btn btn-soft btn-sm man-ir" data-man-ir="ausencias">Abrir Ausências →</button>` },
+
+        { id: 'cadastros', icone: '🗂️', titulo: 'Cadastros', tags: 'colaborador apelido cobrar licenca atestado afastamento manual feriado salvar',
+          resumo: 'Colaboradores, ausências manuais e feriados, editados direto no painel.',
+          html: `<h3>🧑‍💻 Colaboradores</h3><ul><li><b>ID Jira</b>: usuário no Jira/Tempo (ajuda a ligar o apontamento à pessoa).</li><li><b>Nome</b> e <b>E-mail</b>: obrigatórios; o e-mail é para onde vai a cobrança.</li><li><b>Apelidos</b>: como a pessoa aparece na agenda, separados por vírgula.</li><li><b>Cobrar</b>: NÃO tira da cobrança automática (ex.: o líder).</li></ul>
+            <h3>🌴 Ausências manuais — como lançar uma licença</h3>
+            <ol class="man-steps"><li>Clique em <b>＋ Nova linha</b>.</li><li><b>Identificador</b>: comece a digitar o nome e escolha o e-mail na lista.</li><li><b>Início</b> e <b>Fim</b>: fim de semana e feriado no meio são ignorados sozinhos.</li><li><b>Horas</b>: em branco = dia inteiro; preenchido = abate só essas horas em cada dia.</li><li><b>Motivo</b>: use "Licença", "Atestado" ou "Consulta" para classificar o tipo.</li><li>Clique em <b>💾 Salvar alterações</b>.</li></ol>
+            <div class="man-tip">🔗 Esta lista é a <b>fonte única</b> de ausências manuais: o Capacidade Não Produtiva também lê daqui. Lance uma vez só.</div>
+            <h3>📅 Feriados</h3><p>Nacionais e de SP (inclusive Carnaval, Sexta-feira Santa e Corpus Christi) já são automáticos. Cadastre só municipais, emendas e pontos facultativos.</p>
+            <p>Linhas <span class="chip c-warn">amarelas</span> foram alteradas e <span class="chip c-ok">verdes</span> são novas. Nada vai para a planilha até clicar em <b>Salvar</b>; <b>Descartar</b> desfaz.</p>
+            <button class="btn btn-soft btn-sm man-ir" data-man-ir="cadastros">Abrir Cadastros →</button>` },
+
+        { id: 'config', icone: '⚙️', titulo: 'Configurações e rotinas', tags: 'token team id hora minima lider rotina gatilho horario admin',
+          resumo: 'Conexão com o Tempo, regras de cobrança e o que roda sozinho.',
+          html: `<ul><li><b>Conexão com o Tempo</b>: URL do Jira, Team ID e token pessoal (PAT). O token nunca aparece na tela; preencha só para trocar.</li><li><b>Regras</b>: hora mínima por dia, e-mail do líder (recebe as cópias), período automático ou meses fixos.</li><li><b>Fontes</b>: endereços da planilha de férias e da planilha de agendamento de ausências. Use <b>🔌 Testar conexões</b> para conferir.</li></ul>
+            <h3>⏰ Rotinas automáticas</h3><table><tr><th>Quando</th><th>O quê</th></tr>
+            <tr><td>Seg a sex, 07h</td><td>Busca os dados e grava as abas da planilha.</td></tr>
+            <tr><td>Seg a sex, 09h</td><td>Envia o relatório do período para o líder.</td></tr>
+            <tr><td>Sexta, 14h</td><td>Cobra todos com pendência e Cobrar = SIM.</td></tr></table>
+            <p>Use <b>▶ Ativar / reconfigurar</b> para ligar e <b>⏸ Desativar</b> para pausar. Em <b>Ações manuais</b> dá para rodar qualquer uma agora.</p>
+            <h3>🔐 Área do administrador</h3><p>Só aparece para o administrador: links para a planilha, o editor do Apps Script, execuções, acionadores e o repositório no GitHub.</p>
+            <button class="btn btn-soft btn-sm man-ir" data-man-ir="config">Abrir Configurações →</button>` },
+
+        { id: 'integracao', icone: '🔗', titulo: 'Integração com o Capacidade Não Produtiva', tags: 'capacidade integracao fonte unica',
+          resumo: 'O que é compartilhado entre os dois painéis.',
+          html: `<ul><li>Os dois leem a mesma <b>planilha de férias</b> e a mesma <b>agenda de ausências</b>.</li><li>As <b>ausências manuais</b> lançadas aqui também valem no Capacidade (ele lê a aba <code>Ausencias</code> desta planilha).</li><li>Diferença: aqui "% não produtivo" mede <b>ausências</b>; no Capacidade, mede <b>horas esperadas que não foram apontadas</b>.</li></ul>` }
+      ],
+      faq: [
+        { p: 'Alguém está pendente num dia em que estava de férias. Por quê?', r: '<p>As férias não chegaram em nenhuma fonte. Confira se estão na planilha de férias com situação Marcadas/Em gozo/Agendadas ou na agenda com o nome no título. Se não estiverem, lance em <b>Cadastros › Ausências manuais</b>.</p>' },
+        { p: 'A pessoa apontou, mas o painel mostra 0h.', r: '<p>Clique em <b>↻ Atualizar</b> (o painel guarda a busca por até 30 min). Se continuar, confira se ela está no time certo do Tempo (Team ID) e se o ID Jira dela está correto em Colaboradores.</p>' },
+        { p: 'Como lanço licença por falecimento, casamento ou atestado?', r: '<p>Em <b>Cadastros › Ausências manuais</b>: nova linha, e-mail da pessoa, início e fim, horas em branco, motivo "Licença…" ou "Atestado". Salve. Vale também para o Capacidade.</p>' },
+        { p: 'Posso cobrar só uma pessoa?', r: '<p>Sim: na aba Cobranças, botão <b>📧 Cobrar agora</b> no cartão dela, ou o botão Cobrar na tabela do Dashboard.</p>' },
+        { p: 'Quero ver o e-mail antes de mandar.', r: '<p>Use <b>👁️ Prévia</b> (mostra na tela) ou <b>🧪 Teste</b> (manda só para você).</p>' },
+        { p: 'Por que o dia de hoje não aparece como pendente?', r: '<p>O dia ainda não acabou. Só dias úteis encerrados são cobrados.</p>' },
+        { p: 'Feriado municipal não está sendo considerado.', r: '<p>Cadastre em <b>Cadastros › Feriados</b>. Os nacionais e de SP já são automáticos.</p>' },
+        { p: 'Como tiro alguém da cobrança automática?', r: '<p>Em Colaboradores, coluna <b>Cobrar = NÃO</b>. A pessoa continua aparecendo no painel.</p>' },
+        { p: 'Alguém apontou no Tempo mas aparece como "fora do cadastro".', r: '<p>Ela não está em <b>Cadastros › Colaboradores</b>. Adicione com nome, e-mail e ID Jira para receber cobranças e ser identificada na agenda.</p>' },
+        { p: 'As rotinas pararam de rodar.', r: '<p>Em Configurações, veja se aparecem como <b>Ativas</b>. Se não, clique em <b>▶ Ativar / reconfigurar</b>. O administrador vê os erros em <b>Área do administrador › Execuções</b>.</p>' }
+      ],
+      tour: [
+        { view: 'dash', sel: '#tabs', titulo: 'Navegação', texto: 'Estas são as abas do painel. Vamos passar por cada uma.' },
+        { view: 'dash', sel: '.hero-top .filters', titulo: 'Período', texto: 'Escolha os meses e clique em Aplicar. ↻ Atualizar busca tudo de novo no Tempo, na agenda e nas férias.' },
+        { view: 'dash', sel: '#kpis', titulo: 'Indicadores', texto: 'Resumo do time: cumprimento da meta, saldo, quem está pendente, ausências e % não produtivo.' },
+        { view: 'dash', sel: '#atencao', titulo: 'Quem precisa de atenção', texto: 'Quem mais deve horas. O botão 📧 abre a cobrança da pessoa.' },
+        { view: 'dash', sel: '#heatmap', titulo: 'Mapa diário', texto: 'Cada quadrado é um dia. Vermelho = sem apontamento, roxo = ausência, cinza = feriado. Passe o mouse para ver detalhes.' },
+        { view: 'dash', sel: '#tabela', titulo: 'Colaboradores', texto: 'Ordene, filtre, veja o detalhe 🔎, a prévia 👁️ ou cobre direto. Marque várias pessoas para cobrar em lote.' },
+        { view: 'cobrancas', sel: '#cobGrid', titulo: 'Cobranças', texto: 'Um cartão por pessoa com pendência: Prévia, Teste (só para você) e Cobrar agora (com cópia para o líder).' },
+        { view: 'ausencias', sel: '#tblAus', titulo: 'Ausências', texto: 'Tudo que foi descontado da meta e de onde veio. Eventos sem pessoa identificada aparecem em alerta aqui em cima.' },
+        { view: 'cadastros', sel: '#subtabs', titulo: 'Cadastros', texto: 'Colaboradores (apelidos e Cobrar), ausências manuais (licenças, atestados) e feriados. Lembre de clicar em Salvar.' },
+        { view: 'config', sel: '#rotLista', titulo: 'Rotinas automáticas', texto: 'Extração às 7h, relatório às 9h e cobrança na sexta às 14h. Ative ou pause por aqui.' },
+        { view: 'manual', sel: '.man-nav', titulo: 'Pronto!', texto: 'Qualquer dúvida, volte a este manual pelo botão ? no canto da tela. Dá para buscar por palavra.' }
+      ],
+      depois: () => {
+        const $s = id => document.getElementById(id);
+        const f = (v, d = 1) => (Number(v) || 0).toLocaleString('pt-BR', { maximumFractionDigits: d });
+        function calc() {
+          const hm = parseFloat($s('simMeta').value) || 0, tipo = $s('simTipo').value, aus = parseFloat($s('simAus').value) || 0, ap = parseFloat($s('simAp').value) || 0;
+          $s('simAusBox').style.display = tipo === 'parcial' ? '' : 'none';
+          let meta = hm, st, cor, exp;
+          if (tipo === 'feriado') { meta = 0; st = ['c-gray', 'Feriado']; cor = ['#e2e8f0', '#64748b', 'F']; exp = 'Feriado não entra na conta: não há meta nem cobrança.'; }
+          else if (tipo === 'inteiro' || (tipo === 'parcial' && aus >= 8)) { meta = 0; st = ['c-vio', 'Ausência']; cor = ['#a78bfa', '#fff', 'A']; exp = 'Dia inteiro de ausência: meta 0h, não é cobrado.'; }
+          else {
+            if (tipo === 'parcial') meta = Math.max(0, hm - aus);
+            const ok = ap >= meta;
+            if (tipo === 'hoje') { st = ok ? ['c-ok', 'OK'] : ['c-info', 'Hoje']; cor = ['#fff', '#0f5b78', f(ap)]; exp = 'Hoje aparece no mapa, mas não é cobrado mesmo abaixo da meta.'; }
+            else {
+              st = ok ? ['c-ok', 'OK'] : ['c-bad', 'Pendente'];
+              cor = ok ? ['#34d399', '#064e3b', f(ap)] : !ap ? ['#ef4444', '#fff', '0'] : ap < meta / 2 ? ['#fb923c', '#fff', f(ap)] : ['#fcd34d', '#78350f', f(ap)];
+              exp = (tipo === 'parcial' ? `Meta do dia = ${f(hm)}h − ${f(aus)}h de ausência = <b>${f(meta)}h</b>. ` : `Meta do dia = <b>${f(meta)}h</b>. `) +
+                (ok ? 'Apontou o suficiente: dia OK.' : `Faltam <b>${f(meta - ap)}h</b>: o dia entra na cobrança.`);
+            }
+          }
+          $s('simOut').innerHTML = `<span class="cel" style="background:${cor[0]};color:${cor[1]};${tipo === 'hoje' ? 'border:1.5px dashed #0f5b78' : ''}">${cor[2]}</span><span class="big">${f(meta)}h</span><span style="color:var(--ink-3);font-weight:600">meta do dia</span><span class="chip ${st[0]}">${st[1]}</span>`;
+          $s('simExp').innerHTML = exp;
+        }
+        ['simMeta', 'simTipo', 'simAus', 'simAp'].forEach(id => $s(id).addEventListener('input', calc));
+        calc();
+      }
+    };
+    /* ================= MANUAL INTERATIVO (motor) =================
+     * Conteúdo em window.MANUAL: { chave, titulo, intro, rapidos, secoes, faq, tour, irPara, depois }
+     * ============================================================= */
+    (function () {
+      const M = window.MANUAL; if (!M) return;
+      const q = s => document.querySelector(s);
+      const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+      const ls = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
+      const txt = h => { const d = document.createElement('div'); d.innerHTML = h; return d.textContent; };
+
+      function montar() {
+        const raiz = q('#manualRaiz'); if (!raiz) return;
+        raiz.innerHTML = `<div class="man-wrap">
+          <aside class="card man-nav">
+            <input class="search" id="manBusca" placeholder="🔍 Buscar no manual…">
+            <nav id="manNav">${M.secoes.map(s => `<a data-man-sec="${s.id}"><span>${s.icone}</span>${s.titulo}</a>`).join('')}<a data-man-sec="faq"><span>❓</span>Perguntas frequentes</a></nav>
+            <button class="btn btn-primary man-tourbtn" data-man-tour>▶ Tour guiado pela tela</button>
+          </aside>
+          <div class="man-body">
+            <section class="card man-hero">
+              <h2>📘 ${M.titulo}</h2><p>${M.intro}</p>
+              <div class="btn-row"><button class="btn btn-light" data-man-tour>▶ Fazer o tour guiado</button></div>
+              <div class="man-quick">${M.rapidos.map(r => `<button data-man-sec="${r.sec}"><span>${r.icone}</span>${r.txt}</button>`).join('')}</div>
+            </section>
+            ${M.secoes.map(s => `<section class="card man-sec" id="man-${s.id}">
+              <h2>${s.icone} ${s.titulo}</h2><div class="man-res">${s.resumo}</div><div class="man-txt">${s.html}</div></section>`).join('')}
+            <section class="card man-sec man-faq" id="man-faq"><h2>❓ Perguntas frequentes</h2><div class="man-res">Clique na pergunta para ver a resposta.</div>
+              ${M.faq.map(f => `<details><summary>${f.p}</summary><div class="man-txt">${f.r}</div></details>`).join('')}</section>
+            <div class="card man-vazio" id="manVazio" hidden>Nada encontrado. Tente outra palavra (ex.: férias, cobrança, feriado).</div>
+          </div></div>`;
+
+        raiz.addEventListener('click', e => {
+          const s = e.target.closest('[data-man-sec]'); if (s) return irSecao(s.dataset.manSec);
+        });
+        q('#manBusca').addEventListener('input', e => buscar(e.target.value));
+        if (M.depois) M.depois();
+      }
+
+      function irSecao(id) {
+        const el = q('#man-' + id); if (!el) return;
+        el.hidden = false; el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1400);
+        document.querySelectorAll('#manNav a').forEach(a => a.classList.toggle('on', a.dataset.manSec === id));
+      }
+
+      function buscar(termo) {
+        const t = norm(termo).trim();
+        let algum = false;
+        M.secoes.forEach(s => {
+          const ok = !t || norm(s.titulo + ' ' + txt(s.resumo) + ' ' + txt(s.html) + ' ' + (s.tags || '')).includes(t);
+          q('#man-' + s.id).hidden = !ok; q(`#manNav a[data-man-sec="${s.id}"]`).hidden = !ok; algum = algum || ok;
+        });
+        let faqOk = false;
+        document.querySelectorAll('#man-faq details').forEach((d, i) => {
+          const f = M.faq[i]; const ok = !t || norm(f.p + ' ' + txt(f.r)).includes(t);
+          d.hidden = !ok; if (t && ok) d.open = true; faqOk = faqOk || ok;
+        });
+        q('#man-faq').hidden = !faqOk; q('#manNav a[data-man-sec="faq"]').hidden = !faqOk;
+        q('.man-hero').hidden = !!t;
+        q('#manVazio').hidden = algum || faqOk;
+      }
+
+      /* ---------------- Tour guiado ---------------- */
+      let passo = 0, ativo = false, bloq, luz, card;
+      function tourIniciar() {
+        fecharBoasVindas(); ativo = true; passo = 0;
+        bloq = document.createElement('div'); bloq.className = 'tour-bloq';
+        luz = document.createElement('div'); luz.className = 'tour-luz sem';
+        card = document.createElement('div'); card.className = 'tour-card';
+        document.body.append(bloq, luz, card);
+        bloq.onclick = () => {};
+        mostrar();
+      }
+      function tourFim() {
+        ativo = false; [bloq, luz, card].forEach(x => x && x.remove());
+        ls.set(M.chave, '1');
+        if (M.irPara) M.irPara(M.viewManual || 'manual');
+      }
+      function mostrar() {
+        const p = M.tour[passo];
+        if (p.view && M.irPara) M.irPara(p.view);
+        card.innerHTML = `<button class="t-x" title="Sair do tour">✕</button>
+          <div class="t-cont">Passo ${passo + 1} de ${M.tour.length}</div><h4>${p.titulo}</h4><p>${p.texto}</p>
+          <div class="t-bar"><span style="width:${(passo + 1) / M.tour.length * 100}%"></span></div>
+          <div class="t-btns"><button class="btn btn-line btn-sm" data-t="ant" ${passo ? '' : 'disabled'}>← Voltar</button>
+          <button class="btn btn-primary btn-sm" data-t="prox">${passo === M.tour.length - 1 ? 'Concluir ✓' : 'Próximo →'}</button></div>`;
+        card.querySelector('.t-x').onclick = tourFim;
+        card.querySelector('[data-t=ant]').onclick = () => { if (passo) { passo--; mostrar(); } };
+        card.querySelector('[data-t=prox]').onclick = () => { if (passo < M.tour.length - 1) { passo++; mostrar(); } else tourFim(); };
+        setTimeout(() => {
+          const el = p.sel ? q(p.sel) : null;
+          const visivel = el && el.getClientRects().length && el.offsetParent !== null;
+          if (!visivel) { luz.className = 'tour-luz sem'; posCard(null); return; }
+          el.scrollIntoView({ block: 'center' });
+          setTimeout(() => {
+            const r = el.getBoundingClientRect(), m = 6;
+            const top = Math.max(4, r.top - m), alt = Math.min(r.height + m * 2, window.innerHeight - top - 4);
+            luz.className = 'tour-luz';
+            Object.assign(luz.style, { left: (r.left - m) + 'px', top: top + 'px', width: (r.width + m * 2) + 'px', height: alt + 'px' });
+            posCard({ left: r.left, top, bottom: top + alt, width: r.width });
+          }, 220);
+        }, 260);
+      }
+      function posCard(r) {
+        const w = card.offsetWidth, h = card.offsetHeight, vw = window.innerWidth, vh = window.innerHeight;
+        if (!r) { card.style.left = (vw - w) / 2 + 'px'; card.style.top = Math.max(12, (vh - h) / 2) + 'px'; return; }
+        let top = r.bottom + 12;
+        if (top + h > vh - 8) top = r.top - h - 12;
+        if (top < 8) top = Math.min(vh - h - 12, r.top + 12);
+        const left = Math.min(Math.max(12, r.left + r.width / 2 - w / 2), vw - w - 12);
+        card.style.left = left + 'px'; card.style.top = Math.max(8, top) + 'px';
+      }
+      document.addEventListener('keydown', e => {
+        if (!ativo) return;
+        if (e.key === 'Escape') tourFim();
+        if (e.key === 'ArrowRight') card.querySelector('[data-t=prox]').click();
+        if (e.key === 'ArrowLeft') card.querySelector('[data-t=ant]').click();
+      });
+      window.addEventListener('resize', () => { if (ativo) mostrar(); });
+      document.addEventListener('click', e => { if (e.target.closest('[data-man-tour]')) tourIniciar(); });
+      document.addEventListener('click', e => { const b = e.target.closest('[data-man-ir]'); if (b && M.irPara) M.irPara(b.dataset.manIr); });
+
+      /* ---------------- Boas-vindas + botão de ajuda ---------------- */
+      function fecharBoasVindas() { const b = q('#manBoasVindas'); if (b) b.remove(); ls.set(M.chave, '1'); }
+      function boasVindas() {
+        const aj = document.createElement('button'); aj.className = 'man-ajuda'; aj.title = 'Manual e tour guiado'; aj.textContent = '?';
+        aj.onclick = () => { if (M.irPara) M.irPara(M.viewManual || 'manual'); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+        document.body.appendChild(aj);
+        if (ls.get(M.chave)) return;
+        const b = document.createElement('div'); b.className = 'man-boasvindas'; b.id = 'manBoasVindas';
+        b.innerHTML = `<b>👋 Primeira vez por aqui?</b><p>Faça um tour rápido de 1 minuto pela tela ou abra o manual com tudo explicado.</p>
+          <div class="btn-row"><button class="btn btn-primary btn-sm" data-man-tour>▶ Fazer o tour</button>
+          <button class="btn btn-line btn-sm" id="manBvManual">📘 Abrir manual</button><button class="btn btn-line btn-sm" id="manBvX">Agora não</button></div>`;
+        document.body.appendChild(b);
+        q('#manBvManual').onclick = () => { fecharBoasVindas(); M.irPara && M.irPara(M.viewManual || 'manual'); };
+        q('#manBvX').onclick = fecharBoasVindas;
+      }
+
+      montar(); boasVindas();
+      window.manualIrSecao = irSecao;
     })();
   </script>
 </body>
