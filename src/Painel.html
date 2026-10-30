@@ -143,6 +143,14 @@
     .day { font-size: 11px; font-weight: 700; padding: 3px 7px; border-radius: 7px; background: #fff1f2; color: #be123c; border: 1px solid #ffe4e6; }
     .day.zero { background: #fee2e2; color: #b91c1c; }
     .day.aus { background: #f5f3ff; color: #6d28d9; border-color: #ede9fe; }
+    button.day { font-family: inherit; cursor: pointer; transition: background .15s, opacity .15s; }
+    button.day::before { content: '✓ '; }
+    button.day:hover { filter: brightness(.96); box-shadow: 0 0 0 2px rgba(15,91,120,.18); }
+    button.day.off { background: #f8fafc; color: #94a3b8; border-color: #e2e8f0; text-decoration: line-through; }
+    button.day.off::before { content: '＋ '; text-decoration: none; display: inline-block; }
+    .dias-tools { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: 11px; color: var(--ink-3); font-weight: 600; }
+    .dias-tools a { color: var(--teal); cursor: pointer; font-weight: 700; }
+    .dias-tools b { color: var(--ink-2); }
     .cob-foot { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; }
     .cob-last { font-size: 11px; color: var(--ink-3); font-weight: 600; }
     .em-dia { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -554,6 +562,18 @@
     let DADOS = null, CTX = {}, LOG = [], charts = {};
     let periodo = { mesDe: '', mesAte: '' };
     let selecionados = new Set();
+    const DIAS_OFF = {}; // email -> Set de dias (iso) desmarcados na cobrança
+    const diasPend = email => { const d = DADOS.devs.find(x => x.email === email); return d ? d.dias.map((x, i) => ({ x, dia: DADOS.dias[i] })).filter(o => o.x.s === 'PEND') : []; };
+    const diaOff = (email, iso) => !!(DIAS_OFF[email] && DIAS_OFF[email].has(iso));
+    /** Dias escolhidos do colaborador ou null quando são todos os pendentes. */
+    function diasEscolhidos(email) {
+      if (!DIAS_OFF[email] || !DIAS_OFF[email].size) return null;
+      return diasPend(email).filter(o => !diaOff(email, o.dia.iso)).map(o => o.dia.iso);
+    }
+    function mapaDias(emails) {
+      const m = {}; emails.forEach(e => { const d = diasEscolhidos(e); if (d) m[e] = d; });
+      return Object.keys(m).length ? m : null;
+    }
     let ordem = { col: 'faltam', dir: -1 };
     let CAD = { nome: 'colaboradores', colunas: [], linhas: [], original: '[]', origPorId: {}, carregado: {} };
     let CFG = null;
@@ -634,6 +654,7 @@
       try {
         const r = await chamar('obterDadosPainel', { mesDe: periodo.mesDe, mesAte: periodo.mesAte, forcar: !!forcar });
         DADOS = r.apuracao; CTX = r.contexto || {}; LOG = r.logCobrancas || [];
+        Object.keys(DIAS_OFF).forEach(em => { const v = new Set(diasPend(em).map(o => o.dia.iso)); DIAS_OFF[em].forEach(i => { if (!v.has(i)) DIAS_OFF[em].delete(i); }); if (!DIAS_OFF[em].size) delete DIAS_OFF[em]; });
         periodo = { mesDe: DADOS.periodo.mesDe, mesAte: DADOS.periodo.mesAte };
         $('fDe').value = periodo.mesDe; $('fAte').value = periodo.mesAte;
         $('dashErro').innerHTML = '';
@@ -897,22 +918,39 @@
       $('cobSub').textContent = `${pend.length} colaborador(es) com pendência em ${fmtData(DADOS.periodo.de)} a ${fmtData(DADOS.periodo.ate)} (dias encerrados)`;
       $('cobGrid').innerHTML = pend.length ? pend.map(d => {
         const ps = d.dias.map((x, i) => ({ x, dia: DADOS.dias[i] })).filter(o => o.x.s === 'PEND');
+        const escolhidos = ps.filter(o => !diaOff(d.email, o.dia.iso));
+        const faltaSel = escolhidos.reduce((s, o) => s + Math.max(0, o.x.m - o.x.h), 0);
+        const parcial = escolhidos.length < ps.length, nenhum = !escolhidos.length;
+        const e = esc(d.email);
         return `<div class="cob ${selecionados.has(d.email) ? 'sel' : ''}">
           <div class="cob-head"><input type="checkbox" data-sel="${esc(d.email)}" ${selecionados.has(d.email) ? 'checked' : ''}>
             ${avatar(d.nome, d.email)}<div class="who"><div style="min-width:0"><b style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(d.nome)}</b><small>${esc(d.email)}</small></div></div></div>
-          <div class="cob-stats"><span class="chip c-bad">${d.totais.diasPendentes} dia(s)</span><span class="chip c-warn">faltam ${fmtH(d.totais.horasFaltantes)}h</span>
+          <div class="cob-stats"><span class="chip c-bad">${parcial ? `${escolhidos.length} de ${ps.length} dia(s)` : `${ps.length} dia(s)`}</span><span class="chip c-warn">faltam ${fmtH(faltaSel)}h</span>
             ${!d.cobrar ? '<span class="chip c-gray">Cobrar = NÃO</span>' : ''}</div>
-          <div class="days">${ps.map(o => `<span class="day ${o.x.h ? '' : 'zero'} ${o.x.a ? 'aus' : ''}" title="${esc(`${o.dia.br}: ${fmtH(o.x.h)}h de ${fmtH(o.x.m)}h${o.x.a ? ' · ' + o.x.a : ''}`)}">${o.dia.br.substring(0, 5)} · ${fmtH(o.x.h)}/${fmtH(o.x.m, 0)}h</span>`).join('')}</div>
+          <div class="dias-tools"><span>Clique nos dias para escolher o que cobrar</span>
+            ${parcial ? `<a data-dias-todos="${e}">marcar todos</a>` : ''}${!nenhum ? `<a data-dias-nenhum="${e}">desmarcar todos</a>` : ''}
+            ${ps.some(o => !o.x.h) && ps.some(o => o.x.h) ? `<a data-dias-zero="${e}">só sem registro</a>` : ''}</div>
+          <div class="days">${ps.map(o => `<button type="button" class="day ${o.x.h ? '' : 'zero'} ${o.x.a ? 'aus' : ''} ${diaOff(d.email, o.dia.iso) ? 'off' : ''}" data-dia-email="${e}" data-dia-iso="${o.dia.iso}" title="${esc(`${o.dia.br}: ${fmtH(o.x.h)}h de ${fmtH(o.x.m)}h${o.x.a ? ' · ' + o.x.a : ''} — clique para ${diaOff(d.email, o.dia.iso) ? 'incluir na' : 'tirar da'} cobrança`)}">${o.dia.br.substring(0, 5)} · ${fmtH(o.x.h)}/${fmtH(o.x.m, 0)}h</button>`).join('')}</div>
           <div class="cob-last">${d.ultimaCobranca ? '🕒 Última cobrança: ' + esc(d.ultimaCobranca) : 'Ainda não cobrado neste painel'}</div>
           <div class="cob-foot">
-            <button class="btn btn-line btn-sm" data-prev="${esc(d.email)}">👁️ Prévia</button>
-            <button class="btn btn-line btn-sm" data-teste="${esc(d.email)}">🧪 Teste</button>
-            <button class="btn btn-send btn-sm" data-cobrar="${esc(d.email)}">📧 Cobrar agora</button>
+            <button class="btn btn-line btn-sm" data-prev="${e}" ${nenhum ? 'disabled' : ''}>👁️ Prévia</button>
+            <button class="btn btn-line btn-sm" data-teste="${e}" ${nenhum ? 'disabled' : ''}>🧪 Teste</button>
+            <button class="btn btn-send btn-sm" data-cobrar="${e}" ${nenhum ? 'disabled title="Marque pelo menos um dia"' : ''}>📧 ${parcial ? `Cobrar ${escolhidos.length} dia(s)` : 'Cobrar agora'}</button>
           </div></div>`;
       }).join('') : '<div class="ok-box" style="grid-column:1/-1"><b>🎉</b>Nenhuma pendência no período. Todo mundo em dia!</div>';
       $('cobEmDia').innerHTML = emDia.length ? `<div class="card-sub" style="margin-bottom:8px;font-weight:700">✅ Em dia (${emDia.length})</div><div class="em-dia">${emDia.map(d => `<span class="chip c-ok">${esc(d.nome)}</span>`).join('')}</div>` : '';
       atualizarBulk();
     }
+    $('cobGrid').addEventListener('click', e => {
+      const b = e.target.closest('[data-dia-iso]'), t = e.target.closest('[data-dias-todos]'), n = e.target.closest('[data-dias-nenhum]'), z = e.target.closest('[data-dias-zero]');
+      if (!b && !t && !n && !z) return;
+      e.stopPropagation();
+      if (b) { const em = b.dataset.diaEmail, s = DIAS_OFF[em] || (DIAS_OFF[em] = new Set()); s.has(b.dataset.diaIso) ? s.delete(b.dataset.diaIso) : s.add(b.dataset.diaIso); }
+      if (t) delete DIAS_OFF[t.dataset.diasTodos];
+      if (n) DIAS_OFF[n.dataset.diasNenhum] = new Set(diasPend(n.dataset.diasNenhum).map(o => o.dia.iso));
+      if (z) DIAS_OFF[z.dataset.diasZero] = new Set(diasPend(z.dataset.diasZero).filter(o => o.x.h).map(o => o.dia.iso));
+      const y = window.scrollY; renderCobrancas(); window.scrollTo(0, y);
+    });
     $('cobGrid').addEventListener('change', e => {
       if (!e.target.dataset.sel) return;
       e.target.checked ? selecionados.add(e.target.dataset.sel) : selecionados.delete(e.target.dataset.sel);
@@ -934,13 +972,17 @@
       const emails = [...selecionados];
       const nomes = emails.map(e => (DADOS.devs.find(d => d.email === e) || {}).nome || e);
       if (a.dataset.bulk === 'teste') return enviar(emails, true);
-      if (await confirmar('Enviar cobrança', `Enviar a cobrança para <b>${emails.length}</b> colaborador(es) com cópia para <b>${esc(CTX.emailLider)}</b>?<br><br>${nomes.map(esc).join(', ')}`, '📧 Enviar cobranças', 'btn-send')) enviar(emails, false);
+      const comEscolha = emails.filter(e => diasEscolhidos(e));
+      if (await confirmar('Enviar cobrança', `Enviar a cobrança para <b>${emails.length}</b> colaborador(es) com cópia para <b>${esc(CTX.emailLider)}</b>?<br><br>${nomes.map(esc).join(', ')}` +
+        (comEscolha.length ? `<br><br>✂️ Com dias escolhidos: ${comEscolha.map(e => { const d = DADOS.devs.find(x => x.email === e); return `${esc(d ? d.nome : e)} (${diasEscolhidos(e).length} de ${diasPend(e).length})`; }).join(', ')}` : ''), '📧 Enviar cobranças', 'btn-send')) enviar(emails, false);
     }));
 
     async function previa(email) {
       carregando('Montando o e-mail…');
       try {
-        const r = await chamar('previewCobrancaPainel', { email, mesDe: periodo.mesDe, mesAte: periodo.mesAte });
+        const dias = diasEscolhidos(email);
+        if (dias && !dias.length) { pronto(); toast('Marque pelo menos um dia para cobrar.', true); return null; }
+        const r = await chamar('previewCobrancaPainel', Object.assign({ email, mesDe: periodo.mesDe, mesAte: periodo.mesAte }, dias ? { dias } : {}));
         pronto();
         if (!r.html) return toast(r.mensagem || 'Sem pendências.');
         return r;
@@ -950,7 +992,9 @@
     async function fluxoCobranca(email) {
       const r = await previa(email); if (!r) return;
       const d = DADOS.devs.find(x => x.email === email) || { nome: email };
-      abrirModal(`Cobrança · ${d.nome}`, `<div class="mail-meta"><b>Para:</b> ${esc(r.para)}<br><b>Cópia:</b> ${esc(r.cc)}<br><b>Assunto:</b> ${esc(r.assunto)}</div><iframe class="mail" id="mailFrame" sandbox></iframe>`, [
+      const totalPend = diasPend(email).length;
+      const aviso = r.dias < totalPend ? `<div class="banner warn" style="margin-bottom:10px">✂️ <div>Cobrando <b>${r.dias} de ${totalPend}</b> dias pendentes (escolhidos no cartão da aba Cobranças).</div></div>` : '';
+      abrirModal(`Cobrança · ${d.nome}`, aviso + `<div class="mail-meta"><b>Para:</b> ${esc(r.para)}<br><b>Cópia:</b> ${esc(r.cc)}<br><b>Assunto:</b> ${esc(r.assunto)}</div><iframe class="mail" id="mailFrame" sandbox></iframe>`, [
         { txt: 'Cancelar', cls: 'btn-line' },
         { txt: '🧪 Enviar teste para mim', cls: 'btn-line', acao: () => enviar([email], true) },
         { txt: '📧 Enviar cobrança', cls: 'btn-send', acao: () => enviar([email], false) }
@@ -968,12 +1012,15 @@
     async function enviar(emails, teste) {
       carregando(teste ? 'Enviando teste para você…' : `Enviando ${emails.length} cobrança(s)…`);
       try {
-        const r = await chamar('enviarCobrancasPainel', { emails, mesDe: periodo.mesDe, mesAte: periodo.mesAte, teste });
+        const dias = mapaDias(emails);
+        const vazios = emails.filter(e => dias && dias[e] && !dias[e].length);
+        if (vazios.length) { toast('Sem dias marcados: ' + vazios.map(e => (DADOS.devs.find(d => d.email === e) || {}).nome || e).join(', '), true); return; }
+        const r = await chamar('enviarCobrancasPainel', Object.assign({ emails, mesDe: periodo.mesDe, mesAte: periodo.mesAte, teste }, dias ? { dias } : {}));
         LOG = r.log || LOG;
         if (!teste) {
           const agora = new Date(), q = `${String(agora.getDate()).padStart(2, '0')}/${String(agora.getMonth() + 1).padStart(2, '0')}/${agora.getFullYear()} ${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`;
           DADOS.devs.forEach(d => { if (emails.includes(d.email)) d.ultimaCobranca = q; });
-          emails.forEach(e => selecionados.delete(e));
+          emails.forEach(e => { selecionados.delete(e); delete DIAS_OFF[e]; });
         }
         renderTabela(); renderCobrancas(); renderLog(); renderAtencao();
         toast(r.mensagem, r.falhas && r.falhas.length);
@@ -1248,6 +1295,7 @@
               <li>Quer conferir na sua caixa? Use <b>🧪 Teste</b>: o e-mail vai só para você.</li>
               <li>Clique em <b>📧 Cobrar agora</b> e confirme. O e-mail vai para a pessoa <b>com cópia para o líder</b>.</li>
             </ol>
+            <h3>✂️ Cobrar só alguns dias</h3><p>No cartão, <b>clique nos dias</b> para tirar ou incluir na cobrança: dia marcado tem ✓, dia riscado fica de fora. Atalhos: <b>desmarcar todos</b>, <b>marcar todos</b> e <b>só sem registro</b>. O botão passa a mostrar <b>Cobrar N dia(s)</b>, e a prévia, o teste, o envio em lote e o histórico usam só os dias marcados.</p>
             <h3>Cobrar várias pessoas</h3><p>Marque as caixas dos cartões (ou <b>☑ Selecionar todos</b>) e use a barra escura que aparece: <b>📧 Cobrar selecionados</b>.</p>
             <h3>O que vai no e-mail</h3><ul><li>Só dias úteis encerrados abaixo da meta, com apontado, meta, quanto falta e a situação (sem registro ou parcial).</li><li>Férias, folgas, feriados e ausências já descontados.</li><li>Botão que abre o timesheet do time no Tempo, no período cobrado.</li></ul>
             <h3>Histórico</h3><p>Toda cobrança (do painel ou da rotina de sexta) fica registrada no <b>Histórico de cobranças</b> e na aba <code>Log_Cobrancas</code>. O cartão mostra a data da última cobrança.</p>
@@ -1297,6 +1345,7 @@
         { p: 'A pessoa apontou, mas o painel mostra 0h.', r: '<p>Clique em <b>↻ Atualizar</b> (o painel guarda a busca por até 30 min). Se continuar, confira se ela está no time certo do Tempo (Team ID) e se o ID Jira dela está correto em Colaboradores.</p>' },
         { p: 'Como lanço licença por falecimento, casamento ou atestado?', r: '<p>Em <b>Cadastros › Ausências manuais</b>: nova linha, e-mail da pessoa, início e fim, horas em branco, motivo "Licença…" ou "Atestado". Salve. Vale também para o Capacidade.</p>' },
         { p: 'Posso cobrar só uma pessoa?', r: '<p>Sim: na aba Cobranças, botão <b>📧 Cobrar agora</b> no cartão dela, ou o botão Cobrar na tabela do Dashboard.</p>' },
+        { p: 'Quero cobrar só alguns dias de uma pessoa.', r: '<p>Na aba Cobranças, clique nos dias do cartão dela para desmarcar os que não quer cobrar (ou use <b>só sem registro</b>). Depois clique em <b>Cobrar N dia(s)</b>.</p>' },
         { p: 'Quero ver o e-mail antes de mandar.', r: '<p>Use <b>👁️ Prévia</b> (mostra na tela) ou <b>🧪 Teste</b> (manda só para você).</p>' },
         { p: 'Por que o dia de hoje não aparece como pendente?', r: '<p>O dia ainda não acabou. Só dias úteis encerrados são cobrados.</p>' },
         { p: 'Feriado municipal não está sendo considerado.', r: '<p>Cadastre em <b>Cadastros › Feriados</b>. Os nacionais e de SP já são automáticos.</p>' },

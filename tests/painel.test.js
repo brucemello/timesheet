@@ -128,6 +128,21 @@ r = R('obterDadosPainel({})');
 assert.ok(r.apuracao.devs.find(d => d.email === 'evandro.peixoto@totvs.com.br').ultimaCobranca, 'última cobrança aparece');
 assert.strictEqual(R('enviarCobrancasPainel({ emails: [] })').sucesso, false);
 
+// 4b) cobrança só de dias escolhidos
+r = R('previewCobrancaPainel({ email: "evandro.peixoto@totvs.com.br", dias: ["2026-10-01", "2026-10-07"] })');
+assert.ok(r.sucesso && r.dias === 2 && /<b>01\/10<\/b>/.test(r.html) && !/<b>02\/10<\/b>/.test(r.html), 'prévia só com os dias escolhidos');
+assert.ok(!R('previewCobrancaPainel({ email: "evandro.peixoto@totvs.com.br", dias: ["2026-10-05"] })').html, 'dia não pendente não entra');
+const antes = ctx.emails.length;
+r = R('enviarCobrancasPainel({ emails: ["evandro.peixoto@totvs.com.br"], dias: { "evandro.peixoto@totvs.com.br": ["2026-10-08"] } })');
+assert.ok(r.sucesso, r.mensagem);
+const ultimo = ctx.emails[ctx.emails.length - 1];
+assert.strictEqual(ctx.emails.length, antes + 1);
+assert.ok(/<b>08\/10<\/b>/.test(ultimo.htmlBody) && !/<b>01\/10<\/b>/.test(ultimo.htmlBody), 'e-mail só com o dia escolhido');
+const logTs = ts.getSheetByName('Log_Cobrancas').dados;
+assert.strictEqual(logTs[logTs.length - 1][4], '08/10');
+assert.ok(/dias escolhidos/.test(logTs[logTs.length - 1][6]));
+assert.ok(/<b>01\/10<\/b>/.test(R('previewCobrancaPainel({ email: "evandro.peixoto@totvs.com.br" })').html), 'sem filtro continua todos');
+
 // 5) cobrança semanal respeita Cobrar = NÃO e quem está em dia
 ctx.emails.length = 0;
 R('executarVerificacaoEAlertaSemanais(false)');

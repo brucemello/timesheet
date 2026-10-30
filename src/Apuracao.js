@@ -157,15 +157,21 @@ function apurarPeriodo_(opcoes) {
 }
 
 /** Pendências por dev a partir da apuração (somente dias úteis já encerrados). */
-function pendenciasDaApuracao_(apur, filtroEmails) {
+/**
+ * @param {Object=} diasPorEmail opcional { email: ['yyyy-MM-dd', ...] } — cobra só esses dias
+ *   (email ausente no mapa = todos os dias pendentes)
+ */
+function pendenciasDaApuracao_(apur, filtroEmails, diasPorEmail) {
   const filtro = filtroEmails ? filtroEmails.map(e => String(e).toLowerCase()) : null;
+  const dias = {};
+  Object.keys(diasPorEmail || {}).forEach(e => { if (Array.isArray(diasPorEmail[e])) dias[String(e).toLowerCase()] = diasPorEmail[e]; });
   return apur.devs
     .filter(d => !filtro || filtro.indexOf(d.email) >= 0)
     .map(d => ({
       nome: d.nome, email: d.email, cobrar: d.cobrar,
       horasFaltantes: d.totais.horasFaltantes,
       pendencias: d.dias.map((x, i) => ({ x: x, dia: apur.dias[i] }))
-        .filter(o => o.x.s === 'PEND')
+        .filter(o => o.x.s === 'PEND' && (!dias[d.email] || dias[d.email].indexOf(o.dia.iso) >= 0))
         .map(o => ({ data: o.dia.br, iso: o.dia.iso, horas: o.x.h, meta: o.x.m, ausencia: o.x.a }))
     }))
     .filter(d => d.pendencias.length > 0);

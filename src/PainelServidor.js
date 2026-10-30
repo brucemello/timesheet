@@ -128,12 +128,14 @@ function previewCobrancaPainel(params) {
   return respostaPainel_(() => {
     const cfg = obterConfiguracoesAtuais();
     const apur = apurarPeriodo_({ mesDe: params.mesDe, mesAte: params.mesAte, usarCache: true });
-    const dev = pendenciasDaApuracao_(apur, [params.email])[0];
-    if (!dev) return { html: '', mensagem: 'Este colaborador não tem pendências no período.' };
+    const filtroDias = Array.isArray(params.dias) ? { [params.email]: params.dias } : null;
+    const dev = pendenciasDaApuracao_(apur, [params.email], filtroDias)[0];
+    if (!dev) return { html: '', mensagem: filtroDias ? 'Nenhum dos dias selecionados está pendente.' : 'Este colaborador não tem pendências no período.' };
     return {
       html: montarEmailIndividualDev_(dev, cfg.horaMinima, apur.periodo),
       para: dev.email, cc: cfg.emailLider,
-      assunto: 'Lembrete de Apontamento de Horas - Pendências Identificadas'
+      assunto: 'Lembrete de Apontamento de Horas - Pendências Identificadas',
+      dias: dev.pendencias.length
     };
   });
 }
@@ -149,12 +151,12 @@ function enviarCobrancasPainel(params) {
     const cfg = obterConfiguracoesAtuais();
     if (!cfg.emailLider) throw new Error('Configure o e-mail do líder antes de enviar.');
     const apur = apurarPeriodo_({ mesDe: params.mesDe, mesAte: params.mesAte, usarCache: true });
-    const devs = pendenciasDaApuracao_(apur, emails);
+    const devs = pendenciasDaApuracao_(apur, emails, params.dias || null);
     const semPendencia = emails.filter(e => !devs.some(d => d.email === String(e).toLowerCase()));
 
     const enviados = [], falhas = [];
     devs.forEach(dev => {
-      try { enviarCobrancaDev_(dev, cfg, apur.periodo, emails.length > 1 ? 'Painel (lote)' : 'Painel (individual)', !!params.teste); enviados.push(dev.nome); }
+      try { enviarCobrancaDev_(dev, cfg, apur.periodo, (emails.length > 1 ? 'Painel (lote)' : 'Painel (individual)') + (params.dias && params.dias[dev.email] ? ' · dias escolhidos' : ''), !!params.teste); enviados.push(dev.nome); }
       catch (e) { falhas.push(`${dev.nome}: ${e.message}`); }
     });
 
